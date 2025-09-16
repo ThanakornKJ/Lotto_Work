@@ -1,0 +1,111 @@
+import 'package:flutter/material.dart';
+import 'package:lotto/pages/login_page.dart';
+
+class AdminSettingPage extends StatelessWidget {
+  const AdminSettingPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app, color: Colors.orange),
+            onPressed: () {
+              // Logout → กลับหน้า LoginPage และลบ history
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+                (route) => false, // ลบ route เดิมทั้งหมด
+              );
+            },
+          ),
+        ],
+        backgroundColor: Colors.grey[200],
+        elevation: 0,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            const SizedBox(height: 50),
+            // โลโก้
+            Image.asset(
+              "assets/images/lotto_logo.png", // ใส่ไฟล์โลโก้ใน assets
+              height: 120,
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              "Setting",
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 40),
+            // ปุ่มสีแดง
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 30,
+                  horizontal: 40,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () {
+                _showConfirmDialog(context);
+              },
+              child: Column(
+                children: const [
+                  Icon(Icons.sync, size: 50, color: Colors.white),
+                  SizedBox(height: 5),
+                  Text(
+                    "รีเซ็ตระบบใหม่ทั้งหมด",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showConfirmDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        content: const Text("คุณแน่ใจว่าจะรีเซ็ตระบบใหม่หรือไม่"),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        actions: [
+          TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text("ยกเลิก"),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.pop(context);
+              // TODO: ใส่โค้ดรีเซ็ตระบบตรงนี้
+            },
+            child: const Text("ตกลง"),
+          ),
+        ],
+      ),
+    );
+  }
+}
