@@ -217,23 +217,28 @@ app.post('/generate-lotteries', async (req, res) => {
 // บันทึกรางวัลใหม่และลบรางวัลเก่า + มีเงินรางวัลต่างกัน
 app.post('/results', async (req, res) => {
   try {
-    const { prize1, prize2, prize3, last3, last2 } = req.body;
+    const { prize1, prize2, prize3 } = req.body;
     const draw_date = new Date();
 
-    // ลบรางวัลเก่า
     await Result.deleteMany({});
-    await Prize.deleteMany({}); // ลบรางวัลของผู้เล่นด้วย
+    await Prize.deleteMany({});
 
-    // กำหนดเงินรางวัล
+    // เลขท้าย 3 ตัว จากรางวัลที่ 1
+    const last3 = prize1.slice(-3);
+
+    // เลขท้าย 2 ตัว สุ่มจากล็อตโต้ 100 ตัว
+    const allNumbers = await Lottery.find({});
+    const randomNum = allNumbers[Math.floor(Math.random() * allNumbers.length)].number;
+    const last2 = randomNum.slice(-2);
+
     const prizeAmounts = {
-      prize1: 6000000, // รางวัลที่ 1
-      prize2: 200000,  // รางวัลที่ 2
-      prize3: 80000,   // รางวัลที่ 3
-      last3: 4000,     // เลขท้าย 3 ตัว
-      last2: 2000,     // เลขท้าย 2 ตัว
+      prize1: 6000000,
+      prize2: 200000,
+      prize3: 80000,
+      last3: 4000,
+      last2: 2000
     };
 
-    // สร้างรางวัลใหม่
     const results = [
       new Result({ result_id: 'R' + Date.now() + '1', draw_date, prize_type: '1st', winning_number: prize1 }),
       new Result({ result_id: 'R' + Date.now() + '2', draw_date, prize_type: '2nd', winning_number: prize2 }),
@@ -241,6 +246,7 @@ app.post('/results', async (req, res) => {
       new Result({ result_id: 'R' + Date.now() + '4', draw_date, prize_type: 'last3', winning_number: last3 }),
       new Result({ result_id: 'R' + Date.now() + '5', draw_date, prize_type: 'last2', winning_number: last2 }),
     ];
+
 
     await Result.insertMany(results);
 

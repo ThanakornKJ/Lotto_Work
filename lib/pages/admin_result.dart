@@ -39,12 +39,19 @@ class _AdminResultPageState extends State<AdminResultPage> {
     if (widget.numbers.isEmpty) return;
 
     setState(() {
+      // สุ่มรางวัลหลัก
       prize1 = widget.numbers[_random.nextInt(widget.numbers.length)];
       prize2 = widget.numbers[_random.nextInt(widget.numbers.length)];
       prize3 = widget.numbers[_random.nextInt(widget.numbers.length)];
-      last3 = prize1.substring(prize1.length - 3);
-      last2 = prize1.substring(prize1.length - 2);
 
+      // เลขท้าย 3 ตัว จากรางวัลที่ 1
+      last3 = prize1.substring(prize1.length - 3);
+
+      // เลขท้าย 2 ตัว สุ่มจากล็อตโต้ 100 ตัว
+      String temp = widget.numbers[_random.nextInt(widget.numbers.length)];
+      last2 = temp.substring(temp.length - 2);
+
+      // เงินรางวัล
       prizeAmount1 = 6000000;
       prizeAmount2 = 200000;
       prizeAmount3 = 80000;
