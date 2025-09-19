@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'login_page.dart';
 
 class AdminLottoUnsoldPage extends StatefulWidget {
@@ -9,17 +11,45 @@ class AdminLottoUnsoldPage extends StatefulWidget {
 }
 
 class _AdminLottoUnsoldPageState extends State<AdminLottoUnsoldPage> {
-  // mock ข้อมูลลอตเตอรี่ที่ยังไม่ขาย
-  final List<String> unsoldLottos = [
-    "123456",
-    "234567",
-    "345678",
-    "456789",
-    "567890",
-    "678901",
-    "789012",
-    "890123",
-  ];
+  List<String> unsoldLottos = [];
+  bool isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUnsoldLottos();
+  }
+
+  Future<void> _fetchUnsoldLottos() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    final url = Uri.parse(
+      'http://192.168.88.98:5000/lotteries',
+    ); // แก้ IP ให้ตรง server
+
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = jsonDecode(response.body);
+        setState(() {
+          unsoldLottos = data
+              .map<String>((lot) => lot['number'] as String)
+              .toList();
+        });
+      } else {
+        print('Failed to fetch lotteries: ${response.body}');
+      }
+    } catch (e) {
+      print('Error: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,38 +112,37 @@ class _AdminLottoUnsoldPageState extends State<AdminLottoUnsoldPage> {
 
           // แสดงลอตเตอรี่ที่ยังไม่ขาย
           Expanded(
-            child: ListView.builder(
-              itemCount: unsoldLottos.length,
-              itemBuilder: (context, index) {
-                return Container(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 6,
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 14,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFFAF0),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        unsoldLottos[index],
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : unsoldLottos.isEmpty
+                ? const Center(child: Text("ไม่มีลอตเตอรี่ที่ยังไม่ขาย"))
+                : ListView.builder(
+                    itemCount: unsoldLottos.length,
+                    itemBuilder: (context, index) {
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 6,
                         ),
-                      ),
-                    ],
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 14,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFFAF0),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          unsoldLottos[index],
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),

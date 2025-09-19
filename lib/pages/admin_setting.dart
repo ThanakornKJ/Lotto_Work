@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lotto/pages/login_page.dart';
+import 'package:http/http.dart' as http; // เพิ่มนี้
 
 class AdminSettingPage extends StatelessWidget {
   const AdminSettingPage({super.key});
@@ -18,11 +19,10 @@ class AdminSettingPage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.exit_to_app, color: Colors.orange),
             onPressed: () {
-              // Logout → กลับหน้า LoginPage และลบ history
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => const LoginPage()),
-                (route) => false, // ลบ route เดิมทั้งหมด
+                (route) => false,
               );
             },
           ),
@@ -35,18 +35,13 @@ class AdminSettingPage extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             const SizedBox(height: 50),
-            // โลโก้
-            Image.asset(
-              "assets/images/lotto_logo.png", // ใส่ไฟล์โลโก้ใน assets
-              height: 120,
-            ),
+            Image.asset("assets/images/lotto_logo.png", height: 120),
             const SizedBox(height: 10),
             const Text(
               "Setting",
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 40),
-            // ปุ่มสีแดง
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -98,9 +93,28 @@ class AdminSettingPage extends StatelessWidget {
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
             ),
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(context);
-              // TODO: ใส่โค้ดรีเซ็ตระบบตรงนี้
+
+              final url = Uri.parse('http://YOUR_SERVER_IP:5000/reset-system');
+              try {
+                final response = await http.post(url);
+                if (response.statusCode == 200) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('รีเซ็ตระบบเรียบร้อยแล้ว')),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('รีเซ็ตระบบล้มเหลว: ${response.body}'),
+                    ),
+                  );
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text('เกิดข้อผิดพลาด: $e')));
+              }
             },
             child: const Text("ตกลง"),
           ),

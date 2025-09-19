@@ -117,11 +117,13 @@ app.post('/purchase', async (req, res) => {
 
     // Check wallet
     const wallet = await Wallet.findOne({ user_id });
-    if (!wallet || wallet.balance < amount_paid) return res.status(400).json({ error: 'Insufficient balance' });
+    if (!wallet || wallet.balance < amount_paid)
+      return res.status(400).json({ error: 'Insufficient balance' });
 
     // Check lottery availability
     const lottery = await Lottery.findOne({ lotto_id });
-    if (!lottery || lottery.status !== 'available') return res.status(400).json({ error: 'Lottery not available' });
+    if (!lottery || lottery.status !== 'available')
+      return res.status(400).json({ error: 'Lottery not available' });
 
     // Deduct money
     wallet.balance -= amount_paid;
@@ -136,11 +138,44 @@ app.post('/purchase', async (req, res) => {
     const purchase = new Purchase({ purchase_id, user_id, lotto_id, purchase_date, amount_paid });
     await purchase.save();
 
+    // Check if purchased number wins any current result
+    const results = await Result.find({});
+    for (const r of results) {
+      let won = false;
+      if (r.prize_type === '1st' && lottery.number === r.winning_number) won = true;
+      if (r.prize_type === '2nd' && lottery.number === r.winning_number) won = true;
+      if (r.prize_type === '3rd' && lottery.number === r.winning_number) won = true;
+      if (r.prize_type === 'last3' && lottery.number.slice(-3) === r.winning_number) won = true;
+      if (r.prize_type === 'last2' && lottery.number.slice(-2) === r.winning_number) won = true;
+
+      if (won) {
+        // map prize_amount จากรางวัล
+        let prize_amount = 0;
+        switch (r.prize_type) {
+          case '1st': prize_amount = 6000000; break;
+          case '2nd': prize_amount = 200000; break;
+          case '3rd': prize_amount = 80000; break;
+          case 'last3': prize_amount = 4000; break;
+          case 'last2': prize_amount = 2000; break;
+        }
+
+        // สร้าง Prize document สำหรับผู้เล่น
+        const prize = new Prize({
+          prize_id: 'P' + Date.now() + r.prize_type + purchase_id,
+          purchase_id,
+          result_id: r.result_id,
+          prize_amount,
+        });
+        await prize.save();
+      }
+    }
+
     res.json({ message: 'Purchase success', purchase, wallet });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
 });
+
 
 // Check wallet balance
 app.get('/wallet/:user_id', async (req, res) => {
@@ -148,6 +183,112 @@ app.get('/wallet/:user_id', async (req, res) => {
   if (!wallet) return res.status(404).json({ error: 'Wallet not found' });
   res.json(wallet);
 });
+
+
+// สร้างเลขล็อตโต้ใหม่ 100 ตัว
+app.post('/generate-lotteries', async (req, res) => {
+  try {
+    // ลบของเก่า
+    await Lottery.deleteMany({});
+
+    const lottoSet = new Set();
+    while (lottoSet.size < 100) {
+      const randomNum = Math.floor(Math.random() * 1000000) // 0 - 999999
+        .toString()
+        .padStart(6, '0'); // เติม 0 ข้างหน้าให้ครบ 6 หลัก
+      lottoSet.add(randomNum);
+    }
+
+    const lotteries = Array.from(lottoSet).map((num, i) => ({
+      lotto_id: "L" + (i + 1).toString().padStart(3, '0'),
+      number: num,
+      price: 100,
+      status: "available",
+    }));
+
+    await Lottery.insertMany(lotteries);
+
+    res.json({ message: "Lotteries generated successfully", lotteries });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// บันทึกรางวัลใหม่และลบรางวัลเก่า + มีเงินรางวัลต่างกัน
+app.post('/results', async (req, res) => {
+  try {
+    const { prize1, prize2, prize3, last3, last2 } = req.body;
+    const draw_date = new Date();
+
+    // ลบรางวัลเก่า
+    await Result.deleteMany({});
+    await Prize.deleteMany({}); // ลบรางวัลของผู้เล่นด้วย
+
+    // กำหนดเงินรางวัล
+    const prizeAmounts = {
+      prize1: 6000000, // รางวัลที่ 1
+      prize2: 200000,  // รางวัลที่ 2
+      prize3: 80000,   // รางวัลที่ 3
+      last3: 4000,     // เลขท้าย 3 ตัว
+      last2: 2000,     // เลขท้าย 2 ตัว
+    };
+
+    // สร้างรางวัลใหม่
+    const results = [
+      new Result({ result_id: 'R' + Date.now() + '1', draw_date, prize_type: '1st', winning_number: prize1 }),
+      new Result({ result_id: 'R' + Date.now() + '2', draw_date, prize_type: '2nd', winning_number: prize2 }),
+      new Result({ result_id: 'R' + Date.now() + '3', draw_date, prize_type: '3rd', winning_number: prize3 }),
+      new Result({ result_id: 'R' + Date.now() + '4', draw_date, prize_type: 'last3', winning_number: last3 }),
+      new Result({ result_id: 'R' + Date.now() + '5', draw_date, prize_type: 'last2', winning_number: last2 }),
+    ];
+
+    await Result.insertMany(results);
+
+    // สร้าง prize entries สำหรับผู้เล่น (ถ้าต้องการ)
+    const prizeDocs = results.map(r => new Prize({
+      prize_id: 'P' + Date.now() + r.prize_type,
+      result_id: r.result_id,
+      prize_amount: prizeAmounts[r.prize_type === '1st' ? 'prize1'
+                    : r.prize_type === '2nd' ? 'prize2'
+                    : r.prize_type === '3rd' ? 'prize3'
+                    : r.prize_type === 'last3' ? 'last3'
+                    : 'last2'],
+      purchase_id: null // ว่างตอนนี้ เพราะยังไม่มีผู้เล่นซื้อ
+    }));
+
+    await Prize.insertMany(prizeDocs);
+
+    res.json({
+      message: 'Results reset and saved successfully with prize amounts',
+      results,
+      prizeAmounts,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+
+
+// รีเซ็ตระบบทั้งหมด เหลือแค่ admin
+app.post('/reset-system', async (req, res) => {
+  try {
+    // ลบข้อมูลทั้งหมดใน collection ที่เกี่ยวข้อง
+    await Wallet.deleteMany({});
+    await Lottery.deleteMany({});
+    await Purchase.deleteMany({});
+    await Result.deleteMany({});
+    await Prize.deleteMany({});
+
+    // ลบผู้ใช้ทั้งหมดที่ไม่ใช่ admin
+    await User.deleteMany({ role: { $ne: 'admin' } });
+
+    res.json({ message: 'System reset successfully. Only admin remains.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // Start server
 const PORT = process.env.PORT || 5000;
