@@ -5,12 +5,11 @@ import 'package:lotto/pages/users_wallets.dart';
 import 'login_page.dart'; // import หน้า LoginPage
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  final String userId;
+  const HomePage({super.key, required this.userId});
 
   @override
-  State<StatefulWidget> createState() {
-    return _HomePageState();
-  }
+  State<StatefulWidget> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
@@ -29,11 +28,10 @@ class _HomePageState extends State<HomePage> {
             IconButton(
               icon: const Icon(Icons.logout, size: 30, color: Colors.orange),
               onPressed: () {
-                // Logout → กลับหน้า LoginPage และลบ history
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const LoginPage()),
-                  (route) => false, // ลบ route เดิมทั้งหมด
+                  MaterialPageRoute(builder: (_) => const LoginPage()),
+                  (route) => false, // ล้าง stack ทั้งหมด
                 );
               },
             ),
@@ -46,11 +44,7 @@ class _HomePageState extends State<HomePage> {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(0, 50, 0, 0),
-                child: Column(
-                  children: [
-                    Image.asset('assets/images/lotto_logo.png', width: 200),
-                  ],
-                ),
+                child: Image.asset('assets/images/lotto_logo.png', width: 200),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(70, 60, 70, 60),
@@ -78,24 +72,26 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   ElevatedButton(
                     onPressed: () {
-                      // ✅ กดแล้วไป UsersLottoUnsoldPage
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const UsersLottoUnsoldPage(),
+                          builder: (_) => UsersLottoUnsoldPage(
+                            userId: widget.userId, // ✅ ส่ง userId มาด้วย
+                          ),
                         ),
                       );
                     },
+
                     style: ElevatedButton.styleFrom(padding: EdgeInsets.zero),
                     child: Image.asset('assets/images/unsold.png', width: 120),
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      // ✅ กดแล้วไป UsersWalletsPage
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const UsersWalletsPage(),
+                          builder: (_) =>
+                              UsersWalletsPage(userId: widget.userId),
                         ),
                       );
                     },
@@ -104,11 +100,10 @@ class _HomePageState extends State<HomePage> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      // ✅ กดแล้วไป UsersPrizesPage
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const UsersPrizesPage(),
+                          builder: (_) => const UsersPrizesPage(),
                         ),
                       );
                     },

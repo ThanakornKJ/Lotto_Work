@@ -26,7 +26,7 @@ class _AdminLottoUnsoldPageState extends State<AdminLottoUnsoldPage> {
     });
 
     final url = Uri.parse(
-      'http://192.168.88.98:5000/lotteries',
+      'http://10.160.2.131:5000/lotteries',
     ); // แก้ IP ให้ตรง server
 
     try {

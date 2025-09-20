@@ -1,89 +1,61 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:lotto/pages/users_purchases.dart';
+import 'package:http/http.dart' as http;
+import 'users_purchases.dart';
 
 class UsersLottoUnsoldPage extends StatefulWidget {
-  const UsersLottoUnsoldPage({super.key});
+  final String userId; // ✅ รับ userId จากหน้า HomePage
+  const UsersLottoUnsoldPage({super.key, required this.userId});
 
   @override
   State<UsersLottoUnsoldPage> createState() => _UsersLottoUnsoldPageState();
 }
 
 class _UsersLottoUnsoldPageState extends State<UsersLottoUnsoldPage> {
-  // mock ข้อมูลลอตเตอรี่ที่ยังไม่ขาย
-  final List<String> unsoldLottos = [
-    "123456",
-    "123456",
-    "123456",
-    "123456",
-    "123456",
-    "123456",
-    "123456",
-    "123456",
-  ];
+  List<dynamic> unsoldLottos = [];
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchUnsoldLottos();
+  }
+
+  Future<void> fetchUnsoldLottos() async {
+    try {
+      final response = await http.get(
+        Uri.parse('http://10.160.2.131:5000/lotteries'),
+      );
+      if (response.statusCode == 200) {
+        setState(() {
+          unsoldLottos = json.decode(response.body);
+          loading = false;
+        });
+      } else {
+        throw Exception('Failed to load lotteries');
+      }
+    } catch (e) {
+      print(e);
+      setState(() => loading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: const [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
-              child: Text(
-                "เมนู",
-                style: TextStyle(color: Colors.white, fontSize: 20),
-              ),
-            ),
-            ListTile(leading: Icon(Icons.home), title: Text("หน้าหลัก")),
-            ListTile(leading: Icon(Icons.shopping_cart), title: Text("ตะกร้า")),
-          ],
-        ),
-      ),
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app, color: Colors.orange),
-            onPressed: () {
-              // TODO: ออกจากระบบ หรือไปหน้าอื่น
-            },
-          ),
-        ],
+        title: const Text("ลอตเตอรี่ที่ยังไม่ขาย"),
         backgroundColor: Colors.grey[200],
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          // โลโก้
-          Center(
-            child: Column(
-              children: [
-                Image.asset(
-                  "assets/images/lotto_logo.png", // ใส่ path โลโก้ของคุณ
-                  height: 80,
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  "ลอตเตอรี่ที่ยังไม่ขาย",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // แสดงลอตเตอรี่ที่ยังไม่ขาย
-          Expanded(
-            child: ListView.builder(
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : unsoldLottos.isEmpty
+          ? const Center(child: Text("ไม่มีล็อตเตอรี่เหลือขาย"))
+          : ListView.builder(
               itemCount: unsoldLottos.length,
               itemBuilder: (context, index) {
+                final lotto = unsoldLottos[index];
                 return Container(
                   margin: const EdgeInsets.symmetric(
                     horizontal: 20,
@@ -101,7 +73,7 @@ class _UsersLottoUnsoldPageState extends State<UsersLottoUnsoldPage> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        unsoldLottos[index],
+                        lotto['number'],
                         style: const TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
@@ -112,17 +84,17 @@ class _UsersLottoUnsoldPageState extends State<UsersLottoUnsoldPage> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
-                          ),
                         ),
                         onPressed: () {
-                          // ✅ กดแล้วไป UsersPurchasesPage
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const UsersPurchasesPage(),
+                              builder: (context) => UsersPurchasesPage(
+                                lottoNumber: lotto['number'],
+                                lottoPrice: lotto['price'],
+                                lottoId: lotto['lotto_id'],
+                                userId: widget.userId, // ✅ ส่ง userId มาด้วย
+                              ),
                             ),
                           );
                         },
@@ -133,9 +105,6 @@ class _UsersLottoUnsoldPageState extends State<UsersLottoUnsoldPage> {
                 );
               },
             ),
-          ),
-        ],
-      ),
     );
   }
 }

@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'login_page.dart';
 
 class UsersPrizesPage extends StatefulWidget {
@@ -11,12 +13,62 @@ class UsersPrizesPage extends StatefulWidget {
 class _UsersPrizesPageState extends State<UsersPrizesPage> {
   final TextEditingController _controller = TextEditingController();
 
-  // mock ข้อมูลรางวัล
-  String prize1 = "123456";
-  String prize2 = "222222";
-  String prize3 = "333333";
-  String last3 = "456";
-  String last2 = "99";
+  // เก็บรางวัลจาก DB
+  String? prize1;
+  String? prize2;
+  String? prize3;
+  String? last3;
+  String? last2;
+
+  bool loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchResults();
+  }
+
+  Future<void> _fetchResults() async {
+    try {
+      final url = Uri.parse("http://10.0.2.2:5000/results"); // Android Emulator
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // ดึงข้อมูลจาก results array
+        final results = data['results'] as List;
+        for (var r in results) {
+          switch (r['prize_type']) {
+            case '1st':
+              prize1 = r['winning_number'];
+              break;
+            case '2nd':
+              prize2 = r['winning_number'];
+              break;
+            case '3rd':
+              prize3 = r['winning_number'];
+              break;
+            case 'last3':
+              last3 = r['winning_number'];
+              break;
+            case 'last2':
+              last2 = r['winning_number'];
+              break;
+          }
+        }
+
+        setState(() => loading = false);
+      } else {
+        throw Exception("โหลดผลรางวัลไม่สำเร็จ");
+      }
+    } catch (e) {
+      setState(() => loading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("❌ Error: $e")));
+    }
+  }
 
   void _checkPrize() {
     String inputNumber = _controller.text.trim();
@@ -26,12 +78,14 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
       return;
     }
 
-    bool success =
-        inputNumber == prize1 ||
+    bool success = false;
+    if (inputNumber == prize1 ||
         inputNumber == prize2 ||
         inputNumber == prize3 ||
-        inputNumber.endsWith(last3) ||
-        inputNumber.endsWith(last2);
+        inputNumber.endsWith(last3 ?? "") ||
+        inputNumber.endsWith(last2 ?? "")) {
+      success = true;
+    }
 
     _showResultDialog(success);
   }
@@ -91,9 +145,7 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
@@ -110,165 +162,107 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
         backgroundColor: Colors.grey[200],
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            const SizedBox(height: 20),
-            // โลโก้
-            Center(
-              child: Image.asset("assets/images/lotto_logo.png", height: 100),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              "ตรวจสอบและขึ้นเงิน",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Image.asset(
+                      "assets/images/lotto_logo.png",
+                      height: 100,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "ตรวจสอบและขึ้นเงิน",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
 
-            const Text(
-              "ป้อนหมายเลขเพื่อการตรวจสอบ",
-              style: TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 10),
+                  const Text("ป้อนหมายเลขเพื่อการตรวจสอบ"),
+                  const SizedBox(height: 10),
 
-            // TextField
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 50),
-              child: TextField(
-                controller: _controller,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
-                  hintText: "ป้อนเลข 6 หลัก",
-                  counterText: "",
-                ),
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 50),
+                    child: TextField(
+                      controller: _controller,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      decoration: const InputDecoration(
+                        border: OutlineInputBorder(),
+                        hintText: "ป้อนเลข 6 หลัก",
+                        counterText: "",
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  ElevatedButton(
+                    onPressed: _checkPrize,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 15,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text("ตรวจสอบ"),
+                  ),
+
+                  const SizedBox(height: 30),
+                  const Divider(thickness: 1),
+                  const SizedBox(height: 20),
+
+                  const Text(
+                    "ผลรางวัลล่าสุด",
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+
+                  _buildPrize("รางวัลที่ 1", prize1),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildPrize("รางวัลที่ 2", prize2, small: true),
+                      _buildPrize("รางวัลที่ 3", prize3, small: true),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildPrize("เลขท้าย 3 ตัว", last3, small: true),
+                      _buildPrize("เลขท้าย 2 ตัว", last2, small: true),
+                    ],
+                  ),
+                  const SizedBox(height: 30),
+                ],
               ),
             ),
-            const SizedBox(height: 20),
+    );
+  }
 
-            ElevatedButton(
-              onPressed: _checkPrize,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 30,
-                  vertical: 15,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text("ตรวจสอบ"),
-            ),
-
-            const SizedBox(height: 30),
-            const Divider(thickness: 1),
-            const SizedBox(height: 20),
-
-            // ✅ โชว์รางวัลด้านล่าง
-            const Text(
-              "ผลรางวัลล่าสุด",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-
-            // รางวัลที่ 1
-            const Text(
-              "รางวัลที่ 1",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              prize1,
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // รางวัลที่ 2 และ 3
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Column(
-                  children: [
-                    const Text("รางวัลที่ 2", style: TextStyle(fontSize: 16)),
-                    const SizedBox(height: 6),
-                    Text(
-                      prize2,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    const Text("รางวัลที่ 3", style: TextStyle(fontSize: 16)),
-                    const SizedBox(height: 6),
-                    Text(
-                      prize3,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // เลขท้าย
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Column(
-                  children: [
-                    const Text(
-                      "รางวัลเลขท้าย 3 ตัว",
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      last3,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-                Column(
-                  children: [
-                    const Text(
-                      "รางวัลเลขท้าย 2 ตัว",
-                      style: TextStyle(fontSize: 16),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      last2,
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 30),
-          ],
+  Widget _buildPrize(String title, String? number, {bool small = false}) {
+    return Column(
+      children: [
+        Text(title, style: TextStyle(fontSize: small ? 16 : 18)),
+        const SizedBox(height: 6),
+        Text(
+          number ?? "-",
+          style: TextStyle(
+            fontSize: small ? 22 : 32,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
+          ),
         ),
-      ),
+      ],
     );
   }
 }

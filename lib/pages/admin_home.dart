@@ -3,6 +3,7 @@ import 'package:lotto/pages/admin_random.dart';
 import 'package:lotto/pages/admin_setting.dart';
 import 'login_page.dart';
 import 'admin_lotto_unsold.dart'; // ✅ import หน้าลอตเตอรี่ยังไม่ขาย
+import 'admin_check.dart';
 
 class AdminLotto extends StatefulWidget {
   const AdminLotto({super.key});
@@ -91,7 +92,13 @@ class _AdminLottoState extends State<AdminLotto> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      print('ตรวจสอบยอดเงิน');
+                      // ✅ กดแล้วไป AdminCheckPage
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminCheckPage(),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(padding: EdgeInsets.zero),
                     child: Image.asset('assets/images/balance.png', width: 120),

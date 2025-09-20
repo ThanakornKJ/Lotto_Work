@@ -96,7 +96,7 @@ class AdminSettingPage extends StatelessWidget {
             onPressed: () async {
               Navigator.pop(context);
 
-              final url = Uri.parse('http://YOUR_SERVER_IP:5000/reset-system');
+              final url = Uri.parse('http://10.160.2.131:5000/reset-system');
               try {
                 final response = await http.post(url);
                 if (response.statusCode == 200) {

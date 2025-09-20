@@ -17,44 +17,51 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
 
   Future<void> login() async {
-    final url = Uri.parse(
-      "http://10.0.2.2:5000/login", // สำหรับ Android Emulator
-    );
-    // final url = Uri.parse("http://192.168.1.25:5000/login"); // สำหรับ Chrome
+    final url = Uri.parse("http://10.0.2.2:5000/login"); // Emulator
+    // final url = Uri.parse("http://192.168.1.25:5000/login"); // Chrome
 
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "email": emailController.text,
-        "password": passwordController.text,
-      }),
-    );
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": emailController.text.trim(),
+          "password": passwordController.text.trim(),
+        }),
+      );
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      final role = data["user"]["role"];
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final role = data["user"]["role"];
+        final userId = data["user"]["user_id"];
 
-      if (role == "admin") {
-        Navigator.pushReplacement(
+        if (role == "admin") {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminLotto()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => HomePage(userId: userId), // ✅ ส่ง userId
+            ),
+          );
+        }
+
+        ScaffoldMessenger.of(
           context,
-          MaterialPageRoute(builder: (context) => const AdminLotto()),
-        );
+        ).showSnackBar(SnackBar(content: Text("✅ Login success: $role")));
       } else {
-        Navigator.pushReplacement(
+        final error = jsonDecode(response.body);
+        ScaffoldMessenger.of(
           context,
-          MaterialPageRoute(builder: (context) => const HomePage()),
-        );
+        ).showSnackBar(SnackBar(content: Text("❌ ${error['error']}")));
       }
-
+    } catch (e) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text("✅ Login success: $role")));
-    } else {
-      final error = jsonDecode(response.body);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("❌ ${error['error']}")));
+      ).showSnackBar(SnackBar(content: Text("⚠️ Error: $e")));
     }
   }
 
@@ -128,7 +135,7 @@ class _LoginPageState extends State<LoginPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => RegisterPage()),
+                  MaterialPageRoute(builder: (context) => const RegisterPage()),
                 );
               },
               child: const Text(
