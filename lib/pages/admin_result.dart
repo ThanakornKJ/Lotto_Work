@@ -65,7 +65,7 @@ class _AdminResultPageState extends State<AdminResultPage> {
       isSaving = true;
     });
 
-    final url = Uri.parse('http://10.160.2.131:5000/results');
+    final url = Uri.parse('https://lotto-work.onrender.com/results');
     try {
       final response = await http.post(
         url,

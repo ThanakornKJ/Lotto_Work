@@ -35,7 +35,7 @@ class _UsersPurchasesPageState extends State<UsersPurchasesPage> {
     try {
       final response = await http.get(
         Uri.parse(
-          'http://10.160.2.131:5000/wallet/${widget.userId}',
+          'https://lotto-work.onrender.com/wallet/${widget.userId}',
         ), // ✅ ใช้ userId จริง
       );
       if (response.statusCode == 200) {
@@ -61,7 +61,7 @@ class _UsersPurchasesPageState extends State<UsersPurchasesPage> {
 
     try {
       final response = await http.post(
-        Uri.parse('http://10.160.2.131:5000/purchase'),
+        Uri.parse('https://lotto-work.onrender.com/purchase'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'purchase_id': 'PU${DateTime.now().millisecondsSinceEpoch}',

@@ -17,7 +17,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController passwordController = TextEditingController();
 
   Future<void> login() async {
-    final url = Uri.parse("http://10.0.2.2:5000/login"); // Emulator
+    final url = Uri.parse("https://lotto-work.onrender.com/login"); // Emulator
     // final url = Uri.parse("http://192.168.1.25:5000/login"); // Chrome
 
     try {

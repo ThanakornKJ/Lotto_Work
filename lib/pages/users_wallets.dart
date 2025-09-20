@@ -27,7 +27,7 @@ class _UsersWalletsPageState extends State<UsersWalletsPage> {
   Future<void> fetchWallet() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.160.2.131:5000/wallet/${widget.userId}'),
+        Uri.parse('https://lotto-work.onrender.com/wallet/${widget.userId}'),
       );
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -51,7 +51,7 @@ class _UsersWalletsPageState extends State<UsersWalletsPage> {
       if (newBalance < 0) return;
 
       final response = await http.put(
-        Uri.parse('http://10.160.2.131:5000/wallet/${widget.userId}'),
+        Uri.parse('https://lotto-work.onrender.com/wallet/${widget.userId}'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({'balance': newBalance}),
       );

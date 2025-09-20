@@ -16,7 +16,9 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController budgetController = TextEditingController();
 
   Future<void> register() async {
-    final url = Uri.parse("http://10.0.2.2:5000/register"); // Android emulator
+    final url = Uri.parse(
+      "https://lotto-work.onrender.com/register",
+    ); // Android emulator
     final response = await http.post(
       url,
       headers: {"Content-Type": "application/json"},

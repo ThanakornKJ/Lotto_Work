@@ -22,7 +22,7 @@ class _AdminCheckPageState extends State<AdminCheckPage> {
   Future<void> fetchPurchaseData() async {
     try {
       final response = await http.get(
-        Uri.parse("http://10.160.2.131:5000/api/admin/purchases"),
+        Uri.parse("https://lotto-work.onrender.com/api/admin/purchases"),
       );
 
       if (response.statusCode == 200) {

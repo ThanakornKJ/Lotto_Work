@@ -27,7 +27,7 @@ class _AdminRandomPageState extends State<AdminRandomPage> {
     });
 
     final url = Uri.parse(
-      'http://10.160.2.131:5000/generate-lotteries',
+      'https://lotto-work.onrender.com/generate-lotteries',
     ); // แก้ IP ให้ตรง server
 
     try {

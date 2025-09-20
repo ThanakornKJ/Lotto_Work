@@ -26,7 +26,7 @@ class _AdminLottoUnsoldPageState extends State<AdminLottoUnsoldPage> {
     });
 
     final url = Uri.parse(
-      'http://10.160.2.131:5000/lotteries',
+      'https://lotto-work.onrender.com/lotteries',
     ); // แก้ IP ให้ตรง server
 
     try {

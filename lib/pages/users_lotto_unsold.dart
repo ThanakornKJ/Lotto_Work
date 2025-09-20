@@ -24,7 +24,7 @@ class _UsersLottoUnsoldPageState extends State<UsersLottoUnsoldPage> {
   Future<void> fetchUnsoldLottos() async {
     try {
       final response = await http.get(
-        Uri.parse('http://10.160.2.131:5000/lotteries'),
+        Uri.parse('https://lotto-work.onrender.com/lotteries'),
       );
       if (response.statusCode == 200) {
         setState(() {

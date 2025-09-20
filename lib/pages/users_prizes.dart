@@ -30,7 +30,9 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
 
   Future<void> _fetchResults() async {
     try {
-      final url = Uri.parse("http://10.0.2.2:5000/results"); // Android Emulator
+      final url = Uri.parse(
+        "https://lotto-work.onrender.com/results",
+      ); // Android Emulator
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
