@@ -36,11 +36,25 @@ class _AdminResultPageState extends State<AdminResultPage> {
   @override
   void initState() {
     super.initState();
-    soldNumbers = widget.allNumbers
-        .where((lot) => lot['sold'] == true)
-        .map<String>((lot) => lot['number'] as String)
-        .toList();
-    _updatePool();
+    fetchSoldNumbers(); // fetch เลขขายแล้วทันที
+  }
+
+  Future<void> fetchSoldNumbers() async {
+    final url = Uri.parse('https://lotto-work.onrender.com/lotteries/sold');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final List data = jsonDecode(response.body);
+        setState(() {
+          soldNumbers = data.map<String>((e) => e['number'] as String).toList();
+          if (selectedPool == 'sold') _updatePool();
+        });
+      } else {
+        print('Failed to fetch sold numbers: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching sold numbers: $e');
+    }
   }
 
   void _updatePool() {
@@ -110,20 +124,6 @@ class _AdminResultPageState extends State<AdminResultPage> {
       print('Error: $e');
     } finally {
       setState(() => isSaving = false);
-    }
-  }
-
-  Future<void> fetchSoldNumbers() async {
-    final url = Uri.parse('https://lotto-work.onrender.com/lotteries/sold');
-    final response = await http.get(url);
-    if (response.statusCode == 200) {
-      final List data = jsonDecode(response.body);
-      setState(() {
-        soldNumbers = data.map<String>((e) => e['number'] as String).toList();
-        if (selectedPool == 'sold') {
-          _updatePool();
-        }
-      });
     }
   }
 
@@ -201,6 +201,7 @@ class _AdminResultPageState extends State<AdminResultPage> {
                 children: [
                   const Text("เลือกล็อตโต้สำหรับสุ่ม: "),
                   const SizedBox(width: 10),
+                  // แก้ DropdownButton onChanged ให้ fetch sold ใหม่เวลาเลือก
                   DropdownButton<String>(
                     value: selectedPool,
                     items: const [
@@ -213,9 +214,12 @@ class _AdminResultPageState extends State<AdminResultPage> {
                         child: Text('ล็อตโต้ทั้งหมด'),
                       ),
                     ],
-                    onChanged: (value) {
+                    onChanged: (value) async {
                       if (value == null) return;
                       selectedPool = value;
+                      if (selectedPool == 'sold') {
+                        await fetchSoldNumbers();
+                      }
                       _updatePool();
                     },
                   ),

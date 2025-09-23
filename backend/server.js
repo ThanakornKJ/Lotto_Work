@@ -88,7 +88,6 @@ app.post('/register', async (req, res) => {
   }
 });
 
-
 // Login
 app.post('/login', async (req, res) => {
   try {
@@ -109,7 +108,6 @@ app.post('/login', async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 });
-
 
 // Get all available lotteries
 app.get('/lotteries', async (req, res) => {
@@ -219,7 +217,6 @@ app.get('/purchased/:user_id', async (req, res) => {
   }
 });
 
-
 // Check wallet balance
 app.get('/wallet/:user_id', async (req, res) => {
   const wallet = await Wallet.findOne({ user_id: req.params.user_id });
@@ -288,17 +285,19 @@ app.post('/generate-lotteries', async (req, res) => {
 });
 
 // บันทึกรางวัลใหม่และลบรางวัลเก่า + มีเงินรางวัลต่างกัน
+// บันทึกรางวัลใหม่และสร้าง Prize ให้ผู้เล่น
 app.post('/results', async (req, res) => {
   try {
-    const { prize1, prize2, prize3, pool } = req.body; // รับ pool ด้วย
+    const { prize1, prize2, prize3, pool } = req.body;
     const draw_date = new Date();
 
+    // ลบผลเก่า
     await Result.deleteMany({});
     await Prize.deleteMany({});
 
+    // เลือก pool
     let poolLotteries = [];
     if (pool === 'sold') {
-      // ดึงเลขล็อตโต้ที่มี purchase
       const purchases = await Purchase.find({});
       poolLotteries = await Lottery.find({
         lotto_id: { $in: purchases.map(p => p.lotto_id) }
@@ -307,7 +306,6 @@ app.post('/results', async (req, res) => {
       poolLotteries = await Lottery.find({});
     }
 
-
     if (!poolLotteries.length) {
       return res.status(400).json({ error: 'No lotteries available in selected pool' });
     }
@@ -315,7 +313,7 @@ app.post('/results', async (req, res) => {
     // last3 จาก prize1
     const last3 = prize1.slice(-3);
 
-    // last2 สุ่มจาก pool ที่เลือก
+    // last2 สุ่มจาก pool
     const randomLottery = poolLotteries[Math.floor(Math.random() * poolLotteries.length)];
     const last2 = randomLottery.number.slice(-2);
 
@@ -327,6 +325,7 @@ app.post('/results', async (req, res) => {
       last2: 2000
     };
 
+    // สร้าง Result ใหม่
     const results = [
       new Result({ result_id: 'R' + Date.now() + '1', draw_date, prize_type: '1st', winning_number: prize1 }),
       new Result({ result_id: 'R' + Date.now() + '2', draw_date, prize_type: '2nd', winning_number: prize2 }),
@@ -334,8 +333,19 @@ app.post('/results', async (req, res) => {
       new Result({ result_id: 'R' + Date.now() + '4', draw_date, prize_type: 'last3', winning_number: last3 }),
       new Result({ result_id: 'R' + Date.now() + '5', draw_date, prize_type: 'last2', winning_number: last2 }),
     ];
-
     await Result.insertMany(results);
+
+    // สร้าง Prize ให้ผู้เล่นที่ซื้อเลขตรง
+    for (const lot of poolLotteries) {
+      const purchases = await Purchase.find({ lotto_id: lot.lotto_id });
+      for (const p of purchases) {
+        if (lot.number === prize1) await Prize.create({ prize_id: 'P' + Date.now() + '1' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[0]._id, prize_amount: prizeAmounts.prize1 });
+        if (lot.number === prize2) await Prize.create({ prize_id: 'P' + Date.now() + '2' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[1]._id, prize_amount: prizeAmounts.prize2 });
+        if (lot.number === prize3) await Prize.create({ prize_id: 'P' + Date.now() + '3' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[2]._id, prize_amount: prizeAmounts.prize3 });
+        if (lot.number.slice(-3) === last3) await Prize.create({ prize_id: 'P' + Date.now() + '4' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[3]._id, prize_amount: prizeAmounts.last3 });
+        if (lot.number.slice(-2) === last2) await Prize.create({ prize_id: 'P' + Date.now() + '5' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[4]._id, prize_amount: prizeAmounts.last2 });
+      }
+    }
 
     res.json({
       message: 'Results saved successfully',
@@ -347,7 +357,7 @@ app.post('/results', async (req, res) => {
   }
 });
 
-  // Node.js
+
 app.get('/lotteries/sold', async (req, res) => {
   try {
     const purchases = await Purchase.find({});
@@ -396,15 +406,15 @@ app.put('/wallet/:user_id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// Get all results
-app.get('/results', async (req, res) => {
-  try {
-    const results = await Result.find({});
-    res.json({ results });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+// // Get all results
+// app.get('/results', async (req, res) => {
+//   try {
+//     const results = await Result.find({});
+//     res.json({ results });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
 
 
 // Start server
