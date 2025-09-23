@@ -298,10 +298,15 @@ app.post('/results', async (req, res) => {
 
     let poolLotteries = [];
     if (pool === 'sold') {
-      poolLotteries = await Lottery.find({ status: 'sold' });
+      // ดึงเลขล็อตโต้ที่มี purchase
+      const purchases = await Purchase.find({});
+      poolLotteries = await Lottery.find({
+        lotto_id: { $in: purchases.map(p => p.lotto_id) }
+      });
     } else {
       poolLotteries = await Lottery.find({});
     }
+
 
     if (!poolLotteries.length) {
       return res.status(400).json({ error: 'No lotteries available in selected pool' });
@@ -342,6 +347,18 @@ app.post('/results', async (req, res) => {
   }
 });
 
+  // Node.js
+app.get('/lotteries/sold', async (req, res) => {
+  try {
+    const purchases = await Purchase.find({});
+    const soldLotteries = await Lottery.find({
+      lotto_id: { $in: purchases.map(p => p.lotto_id) }
+    });
+    res.json(soldLotteries);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 

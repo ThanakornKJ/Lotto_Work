@@ -31,7 +31,7 @@ class _AdminResultPageState extends State<AdminResultPage> {
   final Random _random = Random();
   bool isSaving = false;
 
-  String selectedPool = 'sold'; // ค่าเริ่มต้นสุ่มจาก sold
+  String selectedPool = 'sold'; // ค่าเริ่มต้น
 
   @override
   void initState() {
@@ -47,7 +47,9 @@ class _AdminResultPageState extends State<AdminResultPage> {
     setState(() {
       poolNumbers = (selectedPool == 'sold')
           ? soldNumbers
-          : widget.allNumbers.map<String>((lot) => lot['number']).toList();
+          : widget.allNumbers
+                .map<String>((lot) => lot['number'] as String)
+                .toList();
     });
   }
 
@@ -55,25 +57,30 @@ class _AdminResultPageState extends State<AdminResultPage> {
     if (poolNumbers.isEmpty) return;
 
     setState(() {
-      // รางวัลที่ 1-3
+      // รางวัลที่ 1-3 สุ่มจาก pool
       prize1 = poolNumbers[_random.nextInt(poolNumbers.length)];
       prize2 = poolNumbers[_random.nextInt(poolNumbers.length)];
       prize3 = poolNumbers[_random.nextInt(poolNumbers.length)];
 
-      // เลขท้าย 3 ตัว จากรางวัลที่ 1
+      // last3 จาก prize1
       last3 = prize1.substring(prize1.length - 3);
 
-      // เลขท้าย 2 ตัว สุ่มจาก pool
+      // last2 สุ่มจาก pool
       last2 = poolNumbers[_random.nextInt(poolNumbers.length)].substring(
-        prize1.length - 2,
+        poolNumbers[0].length - 2,
       );
     });
   }
 
   Future<void> _saveResults() async {
-    setState(() {
-      isSaving = true;
-    });
+    if (prize1.isEmpty || prize2.isEmpty || prize3.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('กรุณาสุ่มรางวัลก่อนบันทึก')),
+      );
+      return;
+    }
+
+    setState(() => isSaving = true);
 
     final url = Uri.parse('https://lotto-work.onrender.com/results');
     try {
@@ -86,7 +93,7 @@ class _AdminResultPageState extends State<AdminResultPage> {
           'prize3': prize3,
           'last3': last3,
           'last2': last2,
-          'pool': selectedPool, // ส่ง pool ไปด้วย
+          'pool': selectedPool,
         }),
       );
 
@@ -102,8 +109,20 @@ class _AdminResultPageState extends State<AdminResultPage> {
     } catch (e) {
       print('Error: $e');
     } finally {
+      setState(() => isSaving = false);
+    }
+  }
+
+  Future<void> fetchSoldNumbers() async {
+    final url = Uri.parse('https://lotto-work.onrender.com/lotteries/sold');
+    final response = await http.get(url);
+    if (response.statusCode == 200) {
+      final List data = jsonDecode(response.body);
       setState(() {
-        isSaving = false;
+        soldNumbers = data.map<String>((e) => e['number'] as String).toList();
+        if (selectedPool == 'sold') {
+          _updatePool();
+        }
       });
     }
   }
@@ -160,114 +179,114 @@ class _AdminResultPageState extends State<AdminResultPage> {
         backgroundColor: Colors.grey[200],
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          Center(
-            child: Column(
-              children: [
-                Image.asset("assets/images/lotto_logo.png", height: 80),
-                const SizedBox(height: 10),
-                const Text(
-                  "ผลการออกรางวัล",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            const SizedBox(height: 20),
+            Center(
+              child: Column(
+                children: [
+                  Image.asset("assets/images/lotto_logo.png", height: 80),
+                  const SizedBox(height: 10),
+                  const Text(
+                    "ผลการออกรางวัล",
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Row(
-              children: [
-                const Text("เลือกล็อตโต้สำหรับสุ่ม: "),
-                const SizedBox(width: 10),
-                DropdownButton<String>(
-                  value: selectedPool,
-                  items: const [
-                    DropdownMenuItem(
-                      value: 'sold',
-                      child: Text('ล็อตโต้ที่ขายแล้ว'),
-                    ),
-                    DropdownMenuItem(
-                      value: 'all',
-                      child: Text('ล็อตโต้ทั้งหมด'),
-                    ),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() {
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Row(
+                children: [
+                  const Text("เลือกล็อตโต้สำหรับสุ่ม: "),
+                  const SizedBox(width: 10),
+                  DropdownButton<String>(
+                    value: selectedPool,
+                    items: const [
+                      DropdownMenuItem(
+                        value: 'sold',
+                        child: Text('ล็อตโต้ที่ขายแล้ว'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'all',
+                        child: Text('ล็อตโต้ทั้งหมด'),
+                      ),
+                    ],
+                    onChanged: (value) {
+                      if (value == null) return;
                       selectedPool = value;
                       _updatePool();
-                    });
-                  },
-                ),
-              ],
+                    },
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 20),
-          buildPrizeRow("รางวัลที่ 1", prize1, prizeAmount1),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              buildPrizeRow("รางวัลที่ 2", prize2, prizeAmount2),
-              buildPrizeRow("รางวัลที่ 3", prize3, prizeAmount3),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              buildPrizeRow("เลขท้าย 3 ตัว", last3, prizeAmountLast3),
-              buildPrizeRow("เลขท้าย 2 ตัว", last2, prizeAmountLast2),
-            ],
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            child: Column(
+            const SizedBox(height: 20),
+            buildPrizeRow("รางวัลที่ 1", prize1, prizeAmount1),
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    onPressed: _randomizePrizes,
-                    child: const Text("สุ่มรางวัล"),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    onPressed: isSaving ? null : _saveResults,
-                    child: isSaving
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text("อัพเดตรางวัล"),
-                  ),
-                ),
+                buildPrizeRow("รางวัลที่ 2", prize2, prizeAmount2),
+                buildPrizeRow("รางวัลที่ 3", prize3, prizeAmount3),
               ],
             ),
-          ),
-        ],
+            const SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                buildPrizeRow("เลขท้าย 3 ตัว", last3, prizeAmountLast3),
+                buildPrizeRow("เลขท้าย 2 ตัว", last2, prizeAmountLast2),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              child: Column(
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      onPressed: _randomizePrizes,
+                      child: const Text("สุ่มรางวัล"),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      onPressed: isSaving ? null : _saveResults,
+                      child: isSaving
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text("อัพเดตรางวัล"),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
