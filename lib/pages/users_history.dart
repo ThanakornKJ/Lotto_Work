@@ -34,10 +34,22 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
+
+        List<dynamic> purchases = data["purchases"] ?? [];
+
+        // เรียงวันที่ล่าสุดไปเก่าสุด
+        purchases.sort((a, b) {
+          DateTime dateA = DateTime.parse(a["purchase_date"]);
+          DateTime dateB = DateTime.parse(b["purchase_date"]);
+          return dateB.compareTo(dateA); // dateB ก่อน → ใหม่สุดก่อน
+        });
+
         setState(() {
-          purchasedLotto = data["purchases"]; // ✅ ใส่ตรงนี้
+          purchasedLotto = purchases;
           loading = false;
         });
+      } else {
+        setState(() => loading = false);
       }
     } catch (e) {
       print("Error: $e");
@@ -65,8 +77,6 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
           ),
         ],
       ),
-
-      // ✅ Drawer เมนูสามขีด
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -105,7 +115,6 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
           ],
         ),
       ),
-
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -125,6 +134,11 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                     const SizedBox(height: 20),
                     if (purchasedLotto.isEmpty) const Text("ยังไม่มีการซื้อ"),
                     ...purchasedLotto.map((lotto) {
+                      DateTime createdAt = DateTime.parse(
+                        lotto["purchase_date"],
+                      );
+                      String formattedDate =
+                          "${createdAt.day}/${createdAt.month}/${createdAt.year} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}";
                       return Container(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 40,
@@ -136,12 +150,24 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                           color: const Color(0xFFFFFAF0),
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Text(
-                          lotto["lotto_number"].toString(),
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        child: Column(
+                          children: [
+                            Text(
+                              lotto["lotto_number"].toString(),
+                              style: const TextStyle(
+                                fontSize: 22,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              "วันที่ซื้อ: $formattedDate",
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey,
+                              ),
+                            ),
+                          ],
                         ),
                       );
                     }).toList(),

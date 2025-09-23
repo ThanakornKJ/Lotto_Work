@@ -12,46 +12,65 @@ class AdminRandomPage extends StatefulWidget {
 }
 
 class _AdminRandomPageState extends State<AdminRandomPage> {
-  List<String> numbers = [];
+  List<Map<String, dynamic>> lotteries = [];
   bool isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _generateLotteries(); // โหลดเลขทันทีตอนเข้า
+    _fetchLotteries(); // โหลดเลขล็อตโต้ตั้งแต่เปิดหน้า
+  }
+
+  Future<void> _fetchLotteries() async {
+    setState(() => isLoading = true);
+    final url = Uri.parse('https://lotto-work.onrender.com/lotteries');
+
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        // data อาจเป็น List ตรง ๆ
+        setState(() {
+          lotteries = List<Map<String, dynamic>>.from(data);
+        });
+      } else {
+        print('Failed to fetch lotteries: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error _fetchLotteries: $e');
+    } finally {
+      setState(() => isLoading = false);
+    }
   }
 
   Future<void> _generateLotteries() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    final url = Uri.parse(
-      'https://lotto-work.onrender.com/generate-lotteries',
-    ); // แก้ IP ให้ตรง server
+    setState(() => isLoading = true);
+    final url = Uri.parse('https://lotto-work.onrender.com/generate-lotteries');
 
     try {
       final response = await http.post(url);
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> lotteries = data['lotteries'];
-
-        setState(() {
-          numbers = lotteries
-              .map<String>((lot) => lot['number'] as String)
-              .toList();
-        });
+        // ตรวจสอบว่า data เป็น Map และมี key 'lotteries'
+        if (data['lotteries'] != null) {
+          setState(() {
+            lotteries = List<Map<String, dynamic>>.from(data['lotteries']);
+          });
+        } else {
+          print('Response ไม่ตรงรูปแบบ: $data');
+        }
       } else {
-        print('Failed to generate lotteries: ${response.body}');
+        print('Failed to generate lotteries: ${response.statusCode}');
       }
     } catch (e) {
-      print('Error: $e');
+      print('Error _generateLotteries: $e');
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
+  }
+
+  List<String> getNumbers() {
+    return lotteries.map<String>((lot) => lot['number'] as String).toList();
   }
 
   @override
@@ -60,9 +79,7 @@ class _AdminRandomPageState extends State<AdminRandomPage> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         actions: [
           IconButton(
@@ -70,7 +87,7 @@ class _AdminRandomPageState extends State<AdminRandomPage> {
             onPressed: () {
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
+                MaterialPageRoute(builder: (_) => const LoginPage()),
                 (route) => false,
               );
             },
@@ -96,7 +113,6 @@ class _AdminRandomPageState extends State<AdminRandomPage> {
           ),
           const SizedBox(height: 20),
 
-          // ปุ่มสุ่มใหม่ + ไปหน้าผลรางวัล
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -119,7 +135,7 @@ class _AdminRandomPageState extends State<AdminRandomPage> {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Text("สุ่มใหม่อีกครั้ง"),
+                    : const Text("สุ่มเลขล็อตโต้"),
               ),
               const SizedBox(width: 12),
               ElevatedButton(
@@ -131,17 +147,15 @@ class _AdminRandomPageState extends State<AdminRandomPage> {
                     vertical: 12,
                   ),
                 ),
-                onPressed: numbers.isEmpty
-                    ? null
-                    : () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                AdminResultPage(numbers: numbers),
-                          ),
-                        );
-                      },
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AdminResultPage(allNumbers: lotteries),
+                    ),
+                  );
+                },
+
                 child: const Text("ไปหน้าสุ่มรางวัล"),
               ),
             ],
@@ -149,12 +163,11 @@ class _AdminRandomPageState extends State<AdminRandomPage> {
 
           const SizedBox(height: 20),
 
-          // แสดงชุดตัวเลข
           Expanded(
-            child: numbers.isEmpty
+            child: lotteries.isEmpty
                 ? const Center(child: Text("ยังไม่มีเลขล็อตโต้"))
                 : ListView.builder(
-                    itemCount: numbers.length,
+                    itemCount: lotteries.length,
                     itemBuilder: (context, index) {
                       return Container(
                         margin: const EdgeInsets.symmetric(
@@ -177,7 +190,7 @@ class _AdminRandomPageState extends State<AdminRandomPage> {
                             ),
                             const SizedBox(width: 10),
                             Text(
-                              numbers[index],
+                              lotteries[index]['number'],
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,

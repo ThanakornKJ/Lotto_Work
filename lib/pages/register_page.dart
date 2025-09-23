@@ -27,6 +27,7 @@ class _RegisterPageState extends State<RegisterPage> {
         "username": userController.text,
         "email": emailController.text,
         "password": passwordController.text,
+        "balance": int.tryParse(budgetController.text) ?? 0, // 👈 เพิ่มตรงนี้
       }),
     );
 

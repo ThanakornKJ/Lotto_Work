@@ -76,7 +76,23 @@ class _UsersPurchasesPageState extends State<UsersPurchasesPage> {
         setState(() {
           balance = data['wallet']['balance'].toDouble();
         });
-        _showResultDialog(true);
+
+        // โชว์ Dialog แล้วกลับไปหน้าก่อนหน้า
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text("สำเร็จ"),
+              content: const Text("ซื้อหวยเรียบร้อยแล้ว"),
+            );
+          },
+        );
+
+        // ✅ ปิด dialog แล้วปิดหน้า UsersPurchasesPage กลับไปหน้า UsersLottoUnsoldPage
+        Future.delayed(const Duration(seconds: 2), () {
+          Navigator.of(context).pop(); // ปิด dialog
+          Navigator.of(context).pop(true); // กลับไปพร้อมส่ง true
+        });
       } else {
         _showResultDialog(false);
       }

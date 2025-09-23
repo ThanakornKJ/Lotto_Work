@@ -4,8 +4,10 @@ import 'package:http/http.dart' as http;
 import 'users_purchases.dart';
 
 class UsersLottoUnsoldPage extends StatefulWidget {
-  final String userId; // ✅ รับ userId จากหน้า HomePage
-  const UsersLottoUnsoldPage({super.key, required this.userId});
+  final String userId;
+  final String? keyword; // ✅ เพิ่ม keyword สำหรับ search
+
+  const UsersLottoUnsoldPage({super.key, required this.userId, this.keyword});
 
   @override
   State<UsersLottoUnsoldPage> createState() => _UsersLottoUnsoldPageState();
@@ -27,8 +29,17 @@ class _UsersLottoUnsoldPageState extends State<UsersLottoUnsoldPage> {
         Uri.parse('https://lotto-work.onrender.com/lotteries'),
       );
       if (response.statusCode == 200) {
+        List<dynamic> allLottos = json.decode(response.body);
+
+        // ✅ partial match filter
+        if (widget.keyword != null && widget.keyword!.isNotEmpty) {
+          allLottos = allLottos.where((lotto) {
+            return lotto['number'].toString().contains(widget.keyword!);
+          }).toList();
+        }
+
         setState(() {
-          unsoldLottos = json.decode(response.body);
+          unsoldLottos = allLottos;
           loading = false;
         });
       } else {
@@ -40,11 +51,72 @@ class _UsersLottoUnsoldPageState extends State<UsersLottoUnsoldPage> {
     }
   }
 
+  // ✅ ฟังก์ชัน highlight keyword
+  Widget highlightText(String text, String? keyword) {
+    if (keyword == null || keyword.isEmpty) {
+      return Text(
+        text,
+        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      );
+    }
+
+    List<TextSpan> spans = [];
+    int start = 0;
+    int index;
+
+    while ((index = text.indexOf(keyword, start)) != -1) {
+      if (index > start) {
+        spans.add(
+          TextSpan(
+            text: text.substring(start, index),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        );
+      }
+
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + keyword.length),
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.red, // ✅ highlight สีแดง
+          ),
+        ),
+      );
+
+      start = index + keyword.length;
+    }
+
+    if (start < text.length) {
+      spans.add(
+        TextSpan(
+          text: text.substring(start),
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+      );
+    }
+
+    return RichText(text: TextSpan(children: spans));
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("ลอตเตอรี่ที่ยังไม่ขาย"),
+        title: Text(
+          widget.keyword != null && widget.keyword!.isNotEmpty
+              ? "ผลการค้นหา: ${widget.keyword}"
+              : "ลอตเตอรี่ที่ยังไม่ขาย",
+        ),
         backgroundColor: Colors.grey[200],
         elevation: 0,
       ),
@@ -72,14 +144,7 @@ class _UsersLottoUnsoldPageState extends State<UsersLottoUnsoldPage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        lotto['number'],
-                        style: const TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
-                        ),
-                      ),
+                      highlightText(lotto['number'], widget.keyword),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
@@ -99,16 +164,11 @@ class _UsersLottoUnsoldPageState extends State<UsersLottoUnsoldPage> {
                           );
 
                           if (result == true) {
-                            // ✅ ลบออกจาก list ทันที
                             setState(() {
                               unsoldLottos.removeAt(index);
                             });
-
-                            // ✅ แล้ว sync ข้อมูลใหม่จาก server
-                            await fetchUnsoldLottos();
                           }
                         },
-
                         child: const Text("Buy"),
                       ),
                     ],

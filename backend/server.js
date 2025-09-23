@@ -290,19 +290,29 @@ app.post('/generate-lotteries', async (req, res) => {
 // บันทึกรางวัลใหม่และลบรางวัลเก่า + มีเงินรางวัลต่างกัน
 app.post('/results', async (req, res) => {
   try {
-    const { prize1, prize2, prize3 } = req.body;
+    const { prize1, prize2, prize3, pool } = req.body; // รับ pool ด้วย
     const draw_date = new Date();
 
     await Result.deleteMany({});
     await Prize.deleteMany({});
 
-    // เลขท้าย 3 ตัว จากรางวัลที่ 1
+    let poolLotteries = [];
+    if (pool === 'sold') {
+      poolLotteries = await Lottery.find({ status: 'sold' });
+    } else {
+      poolLotteries = await Lottery.find({});
+    }
+
+    if (!poolLotteries.length) {
+      return res.status(400).json({ error: 'No lotteries available in selected pool' });
+    }
+
+    // last3 จาก prize1
     const last3 = prize1.slice(-3);
 
-    // เลขท้าย 2 ตัว สุ่มจากล็อตโต้ 100 ตัว
-    const allNumbers = await Lottery.find({});
-    const randomNum = allNumbers[Math.floor(Math.random() * allNumbers.length)].number;
-    const last2 = randomNum.slice(-2);
+    // last2 สุ่มจาก pool ที่เลือก
+    const randomLottery = poolLotteries[Math.floor(Math.random() * poolLotteries.length)];
+    const last2 = randomLottery.number.slice(-2);
 
     const prizeAmounts = {
       prize1: 6000000,
@@ -322,22 +332,8 @@ app.post('/results', async (req, res) => {
 
     await Result.insertMany(results);
 
-    // สร้าง prize entries สำหรับผู้เล่น (ถ้าต้องการ)
-    const prizeDocs = results.map(r => new Prize({
-      prize_id: 'P' + Date.now() + r.prize_type,
-      result_id: r.result_id,
-      prize_amount: prizeAmounts[r.prize_type === '1st' ? 'prize1'
-                    : r.prize_type === '2nd' ? 'prize2'
-                    : r.prize_type === '3rd' ? 'prize3'
-                    : r.prize_type === 'last3' ? 'last3'
-                    : 'last2'],
-      purchase_id: null // ว่างตอนนี้ เพราะยังไม่มีผู้เล่นซื้อ
-    }));
-
-    await Prize.insertMany(prizeDocs);
-
     res.json({
-      message: 'Results reset and saved successfully with prize amounts',
+      message: 'Results saved successfully',
       results,
       prizeAmounts,
     });
@@ -345,6 +341,8 @@ app.post('/results', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+
 
 
 

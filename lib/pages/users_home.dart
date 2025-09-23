@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:lotto/pages/users_lotto_unsold.dart';
 import 'package:lotto/pages/users_prizes.dart';
 import 'package:lotto/pages/users_wallets.dart';
-import 'package:lotto/pages/users_history.dart'; // ✅ import หน้าประวัติการซื้อ
-import 'login_page.dart'; // import หน้า LoginPage
+import 'package:lotto/pages/users_history.dart';
+import 'login_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userId;
@@ -14,15 +14,28 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  final TextEditingController searchController = TextEditingController();
+
+  void searchLotto(String query) {
+    if (query.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => UsersLottoUnsoldPage(
+            userId: widget.userId,
+            keyword: query, // ✅ ส่ง keyword ไป
+          ),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.grey[400],
-        title: const Text("Lotto", style: TextStyle(color: Colors.white)),
-        iconTheme: const IconThemeData(
-          color: Colors.white,
-        ), // ✅ ให้สามขีดเป็นสีขาว
+
         actions: [
           IconButton(
             icon: const Icon(Icons.logout, size: 30, color: Colors.orange),
@@ -30,14 +43,13 @@ class _HomePageState extends State<HomePage> {
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginPage()),
-                (route) => false, // ล้าง stack ทั้งหมด
+                (route) => false,
               );
             },
           ),
         ],
       ),
 
-      // ✅ Drawer เมนูสามขีด
       drawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -55,7 +67,7 @@ class _HomePageState extends State<HomePage> {
               leading: const Icon(Icons.history),
               title: const Text("หวยที่ซื้อ"),
               onTap: () {
-                Navigator.pop(context); // ปิด Drawer ก่อน
+                Navigator.pop(context);
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -76,13 +88,26 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.fromLTRB(0, 50, 0, 0),
                 child: Image.asset('assets/images/lotto_logo.png', width: 200),
               ),
+
+              // ✅ กล่องค้นหา
               Padding(
                 padding: const EdgeInsets.fromLTRB(70, 60, 70, 60),
                 child: TextField(
+                  controller: searchController,
+                  textInputAction:
+                      TextInputAction.search, // ปุ่มคีย์บอร์ดเป็น search
+                  onSubmitted: (value) =>
+                      searchLotto(value), // ✅ กด Enter ค้นหา
                   decoration: InputDecoration(
                     label: const Text(
                       'ค้นหาล็อตโต้:',
                       style: TextStyle(fontSize: 14, color: Colors.grey),
+                    ),
+                    suffixIcon: IconButton(
+                      icon: const Icon(Icons.search),
+                      onPressed: () => searchLotto(
+                        searchController.text,
+                      ), // ✅ กดปุ่มแว่นขยายค้นหาได้ด้วย
                     ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(50),
@@ -97,6 +122,8 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               ),
+
+              // ✅ ปุ่มเมนูต่างๆ
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
