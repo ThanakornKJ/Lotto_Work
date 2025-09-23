@@ -23,23 +23,19 @@ class _AdminCheckUserWinPageState extends State<AdminCheckUserWinPage> {
   Future<void> _fetchUserWins() async {
     try {
       final url = Uri.parse(
-        "https://lotto-work.onrender.com/api/admin/purchases",
+        "https://lotto-work.onrender.com/api/admin/user-prizes",
       );
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final List data = jsonDecode(response.body);
-        // แปลงเป็น list ของ map
         setState(() {
-          userResults = data
-              .map<Map<String, dynamic>>(
-                (user) => {
-                  'username': user['username'],
-                  'totalSets': user['totalSets'],
-                  'totalAmount': user['totalAmount'],
-                },
-              )
-              .toList();
+          userResults = data.map<Map<String, dynamic>>((user) {
+            return {
+              'username': user['username'],
+              'prizes': user['prizes'], // List ของรางวัลจริง
+            };
+          }).toList();
           loading = false;
         });
       } else {
@@ -55,13 +51,7 @@ class _AdminCheckUserWinPageState extends State<AdminCheckUserWinPage> {
 
   Widget buildResultCard(Map<String, dynamic> user) {
     final username = user['username'] ?? '';
-    final prizes = [
-      {'label': 'รางวัลที่ 1', 'amount': 6000000},
-      {'label': 'รางวัลที่ 2', 'amount': 200000},
-      {'label': 'รางวัลที่ 3', 'amount': 80000},
-      {'label': 'เลขท้าย3ตัว', 'amount': 4000},
-      {'label': 'เลขท้าย2ตัว', 'amount': 2000},
-    ];
+    final prizes = user['prizes'] ?? [];
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
@@ -76,14 +66,17 @@ class _AdminCheckUserWinPageState extends State<AdminCheckUserWinPage> {
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            for (var prize in prizes)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Text(
-                  "ถูก${prize['label']} จำนวน 1 รางวัล\nเงินรางวัล: ${prize['amount'].toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} บาท",
-                  style: const TextStyle(fontSize: 14),
+            if (prizes.isEmpty)
+              const Text("ไม่ได้ถูกรางวัล")
+            else
+              for (var prize in prizes)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 4),
+                  child: Text(
+                    "ถูกรางวัล ${prize['prize_type']} จำนวน 1 รางวัล\nเงินรางวัล: ${prize['prize_amount'].toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]},')} บาท",
+                    style: const TextStyle(fontSize: 14),
+                  ),
                 ),
-              ),
           ],
         ),
       ),

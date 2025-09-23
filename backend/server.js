@@ -416,6 +416,37 @@ app.get('/results', async (req, res) => {
   }
 });
 
+app.get('/api/admin/user-prizes', async (req, res) => {
+  try {
+    const users = await User.find({ role: { $ne: 'admin' } });
+    const result = [];
+
+    for (const user of users) {
+      const purchases = await Purchase.find({ user_id: user.user_id });
+      const prizes = [];
+
+      for (const p of purchases) {
+        const userPrizes = await Prize.find({ purchase_id: p.purchase_id })
+          .populate('result_id');
+        for (const up of userPrizes) {
+          prizes.push({
+            prize_type: up.result_id.prize_type,
+            prize_amount: up.prize_amount,
+          });
+        }
+      }
+
+      result.push({
+        username: user.username,
+        prizes,
+      });
+    }
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // Start server
 const PORT = process.env.PORT || 5000;

@@ -105,8 +105,6 @@ class _AdminResultPageState extends State<AdminResultPage> {
           'prize1': prize1,
           'prize2': prize2,
           'prize3': prize3,
-          'last3': last3,
-          'last2': last2,
           'pool': selectedPool,
         }),
       );
@@ -115,6 +113,15 @@ class _AdminResultPageState extends State<AdminResultPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('บันทึกรางวัลเรียบร้อยแล้ว')),
         );
+
+        // ⬅️ ล้างรางวัลเก่าใน UI ก่อนแสดงผลใหม่
+        setState(() {
+          prize1 = '';
+          prize2 = '';
+          prize3 = '';
+          last3 = '';
+          last2 = '';
+        });
       } else {
         print(
           'Failed to save results: ${response.statusCode} ${response.body}',
