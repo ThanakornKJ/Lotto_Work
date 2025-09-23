@@ -97,7 +97,10 @@ class _LoginPageState extends State<LoginPage> {
                 borderSide: BorderSide.none,
               ),
             ),
+            textInputAction: TextInputAction.next, // ให้กด Enter ไปยังช่องถัดไป
+            onSubmitted: (_) => FocusScope.of(context).nextFocus(),
           ),
+
           const SizedBox(height: 20),
 
           // Password
@@ -114,7 +117,10 @@ class _LoginPageState extends State<LoginPage> {
                 borderSide: BorderSide.none,
               ),
             ),
+            textInputAction: TextInputAction.done, // กด Enter เพื่อ Login
+            onSubmitted: (_) => login(), // ⬅️ เรียกฟังก์ชัน Login
           ),
+
           const SizedBox(height: 30),
 
           // Login button

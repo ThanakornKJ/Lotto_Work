@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:lotto/pages/admin_check_user_win.dart';
 import 'package:lotto/pages/admin_random.dart';
 import 'package:lotto/pages/admin_setting.dart';
 import 'login_page.dart';
@@ -105,7 +106,13 @@ class _AdminLottoState extends State<AdminLotto> {
                   ),
                   ElevatedButton(
                     onPressed: () {
-                      print('ตรวจผลและขึ้นเงิน');
+                      // ✅ กดแล้วไปหน้า AdminCheckUserWinPage
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AdminCheckUserWinPage(),
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(padding: EdgeInsets.zero),
                     child: Image.asset('assets/images/results.png', width: 120),

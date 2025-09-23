@@ -126,7 +126,10 @@ class _RegisterPageState extends State<RegisterPage> {
                 borderSide: BorderSide.none,
               ),
             ),
+            textInputAction: TextInputAction.done,
+            onSubmitted: (_) => register(), // ⬅️ เรียกฟังก์ชัน Register
           ),
+
           const SizedBox(height: 30),
 
           // Register Button
