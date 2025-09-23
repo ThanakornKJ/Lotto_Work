@@ -16,17 +16,19 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final TextEditingController searchController = TextEditingController();
 
-  void searchLotto(String query) {
+  void searchLotto(String query) async {
     if (query.isNotEmpty) {
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => UsersLottoUnsoldPage(
-            userId: widget.userId,
-            keyword: query, // ✅ ส่ง keyword ไป
-          ),
+          builder: (_) =>
+              UsersLottoUnsoldPage(userId: widget.userId, keyword: query),
         ),
       );
+      // ✅ เคลียร์ TextField หลังกลับ
+      setState(() {
+        searchController.clear();
+      });
     }
   }
 
@@ -136,6 +138,10 @@ class _HomePageState extends State<HomePage> {
                               UsersLottoUnsoldPage(userId: widget.userId),
                         ),
                       );
+                      // เคลียร์ TextField หลังกลับ
+                      setState(() {
+                        searchController.clear();
+                      });
                     },
                     style: ElevatedButton.styleFrom(padding: EdgeInsets.zero),
                     child: Image.asset('assets/images/unsold.png', width: 120),

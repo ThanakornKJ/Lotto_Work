@@ -1,151 +1,147 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'login_page.dart';
 
 class AdminLottoUnsoldPage extends StatefulWidget {
-  const AdminLottoUnsoldPage({super.key});
+  final String? keyword; // สำหรับค้นหา
+  const AdminLottoUnsoldPage({super.key, this.keyword});
 
   @override
   State<AdminLottoUnsoldPage> createState() => _AdminLottoUnsoldPageState();
 }
 
 class _AdminLottoUnsoldPageState extends State<AdminLottoUnsoldPage> {
-  List<String> unsoldLottos = [];
-  bool isLoading = false;
+  List<dynamic> unsoldLottos = [];
+  bool loading = true;
 
   @override
   void initState() {
     super.initState();
-    _fetchUnsoldLottos();
+    fetchUnsoldLottos();
   }
 
-  Future<void> _fetchUnsoldLottos() async {
-    setState(() {
-      isLoading = true;
-    });
-
-    final url = Uri.parse(
-      'https://lotto-work.onrender.com/lotteries',
-    ); // แก้ IP ให้ตรง server
-
+  Future<void> fetchUnsoldLottos() async {
     try {
-      final response = await http.get(url);
-
+      final response = await http.get(
+        Uri.parse('https://lotto-work.onrender.com/lotteries'),
+      );
       if (response.statusCode == 200) {
-        final List<dynamic> data = jsonDecode(response.body);
+        List<dynamic> allLottos = json.decode(response.body);
+
+        // ✅ กรองตาม keyword ถ้ามี
+        if (widget.keyword != null && widget.keyword!.isNotEmpty) {
+          allLottos = allLottos.where((lotto) {
+            return lotto['number'].toString().contains(widget.keyword!);
+          }).toList();
+        }
+
         setState(() {
-          unsoldLottos = data
-              .map<String>((lot) => lot['number'] as String)
-              .toList();
+          unsoldLottos = allLottos;
+          loading = false;
         });
       } else {
-        print('Failed to fetch lotteries: ${response.body}');
+        throw Exception('Failed to load lotteries');
       }
     } catch (e) {
-      print('Error: $e');
-    } finally {
-      setState(() {
-        isLoading = false;
-      });
+      print(e);
+      setState(() => loading = false);
     }
+  }
+
+  // ✅ highlight keyword
+  Widget highlightText(String text, String? keyword) {
+    if (keyword == null || keyword.isEmpty) {
+      return Text(
+        text,
+        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+      );
+    }
+
+    List<TextSpan> spans = [];
+    int start = 0;
+    int index;
+
+    while ((index = text.indexOf(keyword, start)) != -1) {
+      if (index > start) {
+        spans.add(
+          TextSpan(
+            text: text.substring(start, index),
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: Colors.black,
+            ),
+          ),
+        );
+      }
+
+      spans.add(
+        TextSpan(
+          text: text.substring(index, index + keyword.length),
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.red,
+          ),
+        ),
+      );
+
+      start = index + keyword.length;
+    }
+
+    if (start < text.length) {
+      spans.add(
+        TextSpan(
+          text: text.substring(start),
+          style: const TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+      );
+    }
+
+    return RichText(text: TextSpan(children: spans));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      drawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: const [
-            DrawerHeader(
-              decoration: BoxDecoration(color: Colors.blue),
-              child: Text(
-                "เมนู",
-                style: TextStyle(color: Colors.white, fontSize: 20),
-              ),
-            ),
-            ListTile(leading: Icon(Icons.home), title: Text("หน้าหลัก")),
-          ],
-        ),
-      ),
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+        title: Text(
+          widget.keyword != null && widget.keyword!.isNotEmpty
+              ? "ผลการค้นหา: ${widget.keyword}"
+              : "ลอตเตอรี่ที่ยังไม่ขาย",
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app, color: Colors.orange),
-            onPressed: () {
-              // Logout → กลับหน้า LoginPage และลบ history
-              Navigator.pushAndRemoveUntil(
-                context,
-                MaterialPageRoute(builder: (context) => const LoginPage()),
-                (route) => false,
-              );
-            },
-          ),
-        ],
         backgroundColor: Colors.grey[200],
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          // โลโก้
-          Center(
-            child: Column(
-              children: [
-                Image.asset("assets/images/lotto_logo.png", height: 80),
-                const SizedBox(height: 10),
-                const Text(
-                  "ลอตเตอรี่ที่ยังไม่ขาย",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // แสดงลอตเตอรี่ที่ยังไม่ขาย
-          Expanded(
-            child: isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : unsoldLottos.isEmpty
-                ? const Center(child: Text("ไม่มีลอตเตอรี่ที่ยังไม่ขาย"))
-                : ListView.builder(
-                    itemCount: unsoldLottos.length,
-                    itemBuilder: (context, index) {
-                      return Container(
-                        margin: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 6,
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFFAF0),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          unsoldLottos[index],
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                      );
-                    },
+      body: loading
+          ? const Center(child: CircularProgressIndicator())
+          : unsoldLottos.isEmpty
+          ? const Center(child: Text("ไม่มีล็อตเตอรี่เหลือขาย"))
+          : ListView.builder(
+              itemCount: unsoldLottos.length,
+              itemBuilder: (context, index) {
+                final lotto = unsoldLottos[index];
+                return Container(
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 6,
                   ),
-          ),
-        ],
-      ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFAF0),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: highlightText(lotto['number'], widget.keyword),
+                );
+              },
+            ),
     );
   }
 }
