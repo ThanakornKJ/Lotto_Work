@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lotto/pages/users_lotto_unsold.dart';
 import 'package:lotto/pages/users_prizes.dart';
 import 'package:lotto/pages/users_wallets.dart';
+import 'package:lotto/pages/users_history.dart'; // ✅ import หน้าประวัติการซื้อ
 import 'login_page.dart'; // import หน้า LoginPage
 
 class HomePage extends StatefulWidget {
@@ -18,26 +19,55 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.grey[400],
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        title: const Text("Lotto", style: TextStyle(color: Colors.white)),
+        iconTheme: const IconThemeData(
+          color: Colors.white,
+        ), // ✅ ให้สามขีดเป็นสีขาว
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout, size: 30, color: Colors.orange),
+            onPressed: () {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const LoginPage()),
+                (route) => false, // ล้าง stack ทั้งหมด
+              );
+            },
+          ),
+        ],
+      ),
+
+      // ✅ Drawer เมนูสามขีด
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
           children: [
-            IconButton(
-              icon: const Icon(Icons.menu, size: 30, color: Colors.white),
-              onPressed: () {},
+            const DrawerHeader(
+              decoration: BoxDecoration(color: Colors.orange),
+              child: Center(
+                child: Text(
+                  "เมนู",
+                  style: TextStyle(color: Colors.white, fontSize: 20),
+                ),
+              ),
             ),
-            IconButton(
-              icon: const Icon(Icons.logout, size: 30, color: Colors.orange),
-              onPressed: () {
-                Navigator.pushAndRemoveUntil(
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: const Text("หวยที่ซื้อ"),
+              onTap: () {
+                Navigator.pop(context); // ปิด Drawer ก่อน
+                Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const LoginPage()),
-                  (route) => false, // ล้าง stack ทั้งหมด
+                  MaterialPageRoute(
+                    builder: (_) => UserHistoryPage(userId: widget.userId),
+                  ),
                 );
               },
             ),
           ],
         ),
       ),
+
       body: ListView(
         children: [
           Column(
@@ -50,7 +80,7 @@ class _HomePageState extends State<HomePage> {
                 padding: const EdgeInsets.fromLTRB(70, 60, 70, 60),
                 child: TextField(
                   decoration: InputDecoration(
-                    label: Text(
+                    label: const Text(
                       'ค้นหาล็อตโต้:',
                       style: TextStyle(fontSize: 14, color: Colors.grey),
                     ),
@@ -60,7 +90,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     filled: true,
                     fillColor: Colors.grey[200],
-                    contentPadding: EdgeInsets.symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       vertical: 5,
                       horizontal: 20,
                     ),
@@ -75,13 +105,11 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => UsersLottoUnsoldPage(
-                            userId: widget.userId, // ✅ ส่ง userId มาด้วย
-                          ),
+                          builder: (_) =>
+                              UsersLottoUnsoldPage(userId: widget.userId),
                         ),
                       );
                     },
-
                     style: ElevatedButton.styleFrom(padding: EdgeInsets.zero),
                     child: Image.asset('assets/images/unsold.png', width: 120),
                   ),

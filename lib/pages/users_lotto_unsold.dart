@@ -85,19 +85,30 @@ class _UsersLottoUnsoldPageState extends State<UsersLottoUnsoldPage> {
                           backgroundColor: Colors.green,
                           foregroundColor: Colors.white,
                         ),
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          final result = await Navigator.push(
                             context,
                             MaterialPageRoute(
                               builder: (context) => UsersPurchasesPage(
                                 lottoNumber: lotto['number'],
                                 lottoPrice: lotto['price'],
                                 lottoId: lotto['lotto_id'],
-                                userId: widget.userId, // ✅ ส่ง userId มาด้วย
+                                userId: widget.userId,
                               ),
                             ),
                           );
+
+                          if (result == true) {
+                            // ✅ ลบออกจาก list ทันที
+                            setState(() {
+                              unsoldLottos.removeAt(index);
+                            });
+
+                            // ✅ แล้ว sync ข้อมูลใหม่จาก server
+                            await fetchUnsoldLottos();
+                          }
                         },
+
                         child: const Text("Buy"),
                       ),
                     ],

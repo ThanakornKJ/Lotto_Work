@@ -183,6 +183,42 @@ app.post('/purchase', async (req, res) => {
   }
 });
 
+// Get purchased lotteries by user_id
+app.get('/purchased/:user_id', async (req, res) => {
+  try {
+    const userId = req.params.user_id;
+
+    // Join Purchase กับ Lottery เพื่อดึงเลขล็อตโต้
+    const purchases = await Purchase.aggregate([
+      { $match: { user_id: userId } },
+      {
+        $lookup: {
+          from: "lotteries",       // collection ของเลขล็อตโต้
+          localField: "lotto_id",  // field ใน Purchase
+          foreignField: "lotto_id", // field ใน Lottery
+          as: "lottoInfo"
+        }
+      },
+      { $unwind: "$lottoInfo" }, // เอา lottoInfo ออกมาเป็น object
+      {
+        $project: {
+          _id: 0,
+          purchase_id: 1,
+          lotto_number: "$lottoInfo.number",
+          purchase_date: 1,
+          amount_paid: 1
+        }
+      },
+      { $sort: { purchase_date: -1 } } // เรียงจากล่าสุดไปเก่าสุด
+    ]);
+
+    res.json({ purchases });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 
 // Check wallet balance
 app.get('/wallet/:user_id', async (req, res) => {

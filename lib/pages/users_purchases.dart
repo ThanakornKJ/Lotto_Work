@@ -146,14 +146,15 @@ class _UsersPurchasesPageState extends State<UsersPurchasesPage> {
           IconButton(
             icon: const Icon(Icons.exit_to_app, color: Colors.orange),
             onPressed: () {
-              Navigator.pushAndRemoveUntil(
+              // ✅ กด Logout ค่อยกลับไป LoginPage
+              Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(builder: (context) => const LoginPage()),
-                (route) => false,
               );
             },
           ),
         ],
+
         backgroundColor: Colors.grey[200],
         elevation: 0,
       ),
