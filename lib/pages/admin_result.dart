@@ -113,15 +113,14 @@ class _AdminResultPageState extends State<AdminResultPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('บันทึกรางวัลเรียบร้อยแล้ว')),
         );
-
-        // ⬅️ ล้างรางวัลเก่าใน UI ก่อนแสดงผลใหม่
-        setState(() {
-          prize1 = '';
-          prize2 = '';
-          prize3 = '';
-          last3 = '';
-          last2 = '';
-        });
+        // ✅ ลบส่วนนี้ออก ไม่ล้าง UI
+        // setState(() {
+        //   prize1 = '';
+        //   prize2 = '';
+        //   prize3 = '';
+        //   last3 = '';
+        //   last2 = '';
+        // });
       } else {
         print(
           'Failed to save results: ${response.statusCode} ${response.body}',
