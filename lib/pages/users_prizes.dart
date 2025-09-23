@@ -29,17 +29,15 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
   }
 
   Future<void> _fetchResults() async {
+    setState(() => loading = true);
     try {
-      final url = Uri.parse(
-        "https://lotto-work.onrender.com/results",
-      ); // Android Emulator
+      final url = Uri.parse("https://lotto-work.onrender.com/results");
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-
-        // ดึงข้อมูลจาก results array
         final results = data['results'] as List;
+
         for (var r in results) {
           switch (r['prize_type']) {
             case '1st':
@@ -59,16 +57,15 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
               break;
           }
         }
-
-        setState(() => loading = false);
       } else {
         throw Exception("โหลดผลรางวัลไม่สำเร็จ");
       }
     } catch (e) {
-      setState(() => loading = false);
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text("❌ Error: $e")));
+    } finally {
+      setState(() => loading = false);
     }
   }
 
@@ -141,6 +138,23 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
     });
   }
 
+  Widget _buildPrize(String title, String? number, {bool small = false}) {
+    return Column(
+      children: [
+        Text(title, style: TextStyle(fontSize: small ? 16 : 18)),
+        const SizedBox(height: 6),
+        Text(
+          number ?? "-",
+          style: TextStyle(
+            fontSize: small ? 22 : 32,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -182,10 +196,8 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
-
                   const Text("ป้อนหมายเลขเพื่อการตรวจสอบ"),
                   const SizedBox(height: 10),
-
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 50),
                     child: TextField(
@@ -200,7 +212,6 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
                   ElevatedButton(
                     onPressed: _checkPrize,
                     style: ElevatedButton.styleFrom(
@@ -216,17 +227,14 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
                     ),
                     child: const Text("ตรวจสอบ"),
                   ),
-
                   const SizedBox(height: 30),
                   const Divider(thickness: 1),
                   const SizedBox(height: 20),
-
                   const Text(
                     "ผลรางวัลล่าสุด",
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
-
                   _buildPrize("รางวัลที่ 1", prize1),
                   const SizedBox(height: 10),
                   Row(
@@ -248,23 +256,6 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
                 ],
               ),
             ),
-    );
-  }
-
-  Widget _buildPrize(String title, String? number, {bool small = false}) {
-    return Column(
-      children: [
-        Text(title, style: TextStyle(fontSize: small ? 16 : 18)),
-        const SizedBox(height: 6),
-        Text(
-          number ?? "-",
-          style: TextStyle(
-            fontSize: small ? 22 : 32,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 2,
-          ),
-        ),
-      ],
     );
   }
 }

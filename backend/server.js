@@ -406,15 +406,15 @@ app.put('/wallet/:user_id', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
-// // Get all results
-// app.get('/results', async (req, res) => {
-//   try {
-//     const results = await Result.find({});
-//     res.json({ results });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// });
+// Get all results
+app.get('/results', async (req, res) => {
+  try {
+    const results = await Result.find({});
+    res.json({ results });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 // Start server
