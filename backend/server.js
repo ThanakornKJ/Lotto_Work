@@ -312,12 +312,18 @@ app.post('/results', async (req, res) => {
     }
 
     // last3 ควรไม่ซ้ำกับเลขท้ายรางวัลใหญ่
-    const takenLast3 = [prize1.slice(-3), prize2.slice(-3), prize3.slice(-3)];
+    // last3 = เลขท้าย 3 ตัวจาก prize1 + เลขหน้า 3 ตัวสุ่ม
     let last3;
     do {
-      const randomLottery = poolLotteries[Math.floor(Math.random() * poolLotteries.length)];
-      last3 = randomLottery.number.slice(-3);
-    } while (takenLast3.includes(last3));
+      // สุ่มเลขหน้า 3 ตัว
+      const randomFront = Math.floor(Math.random() * 1000)
+        .toString()
+        .padStart(3, '0'); // 3 ตัวหน้า
+      // รวมเลขหน้า + เลขท้ายจาก prize1
+      last3 = randomFront + prize1.slice(-3);
+      // ตรวจสอบไม่ให้ซ้ำกับรางวัลใหญ่
+    } while ([prize1, prize2, prize3].includes(last3));
+
 
     // last2 ควรไม่ซ้ำกับเลขท้ายรางวัลใหญ่
     const takenLast2 = [prize1.slice(-2), prize2.slice(-2), prize3.slice(-2)];

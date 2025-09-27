@@ -118,12 +118,12 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
         });
 
         // ถ้าอยากกลับหน้า Wallet ก็ยังสามารถทำได้
-        // Navigator.pushReplacement(
-        //   context,
-        //   MaterialPageRoute(
-        //     builder: (_) => UsersWalletsPage(userId: widget.userId),
-        //   ),
-        // );
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => UsersWalletsPage(userId: widget.userId),
+          ),
+        );
       } else {
         showDialog(
           context: context,
