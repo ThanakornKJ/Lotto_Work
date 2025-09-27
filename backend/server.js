@@ -36,10 +36,11 @@ const lotterySchema = new mongoose.Schema({
 const purchaseSchema = new mongoose.Schema({
   purchase_id: String,
   user_id: String,
-  lotto_id: String,
+  lotto_id: { type: String, ref: 'Lottery' }, // ✅ เพิ่ม ref
   purchase_date: Date,
   amount_paid: Number
 });
+
 const resultSchema = new mongoose.Schema({
   result_id: String,
   draw_date: Date,
@@ -395,7 +396,11 @@ app.get('/lotteries/sold', async (req, res) => {
 app.get('/user/:user_id/prizes', async (req, res) => {
   try {
     const { user_id } = req.params;
-    const purchases = await Purchase.find({ user_id });
+    const purchases = await Purchase.find({ user_id }).populate({
+      path: 'lotto_id', // ต้องใช้ ref ใน Purchase -> Lottery
+      model: 'Lottery', // Model ของ Lottery
+      select: 'number'
+    });
 
     const result = [];
     for (const p of purchases) {
@@ -405,7 +410,7 @@ app.get('/user/:user_id/prizes', async (req, res) => {
       });
 
       result.push({
-        lotto_number: p.lotto_id, // หรือ join กับ Lottery เพื่อดึงเลขจริง
+        lotto_number: p.lotto_id?.number, // ✅ เอาเลขล็อตโต้จริง
         claimed: prize ? prize.claimed : false,
         prize_type: prize?.result_id?.prize_type,
         winning_number: prize?.result_id?.winning_number
@@ -417,6 +422,7 @@ app.get('/user/:user_id/prizes', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 
