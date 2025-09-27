@@ -113,6 +113,11 @@ app.post('/login', async (req, res) => {
   }
 });
 
+app.get('/login', (req, res) => {
+  res.send("Login API is working. Use POST instead.");
+});
+
+
 // Get all available lotteries
 app.get('/lotteries', async (req, res) => {
   const lotteries = await Lottery.find({ status: 'available' });
