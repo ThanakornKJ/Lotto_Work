@@ -546,6 +546,29 @@ app.post('/claim-prize', async (req, res) => {
   }
 });
 
+// ตรวจสอบแล้วแต่ไม่ถูกรางวัล
+app.post('/claim-no-prize', async (req, res) => {
+  try {
+    const { user_id, purchase_id } = req.body;
+
+    // ตรวจสอบว่ามี Prize อยู่แล้วหรือไม่
+    const existingPrize = await Prize.findOne({ purchase_id });
+    if (existingPrize) return res.status(400).json({ error: 'Prize already exists for this purchase' });
+
+    // สร้าง Prize แบบไม่ถูกรางวัล
+    const prize = new Prize({
+      prize_id: 'NP' + Date.now(),
+      purchase_id,
+      prize_amount: 0,
+      claimed: true // mark ว่าเช็คแล้ว
+    });
+    await prize.save();
+
+    res.json({ message: 'Recorded as no prize' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 
