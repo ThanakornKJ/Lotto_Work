@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'login_page.dart';
-import 'users_home.dart'; // ✅ import หน้า HomePage
+import 'users_home.dart';
+import 'users_prizes.dart'; // ✅ import หน้า UsersPrizesPage
 
 class UserHistoryPage extends StatefulWidget {
   final String userId;
@@ -25,23 +26,18 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
 
   Future<void> fetchPurchasedLotto() async {
     try {
-      print("Fetching purchases for userId: ${widget.userId}");
       final response = await http.get(
         Uri.parse("https://lotto-work.onrender.com/purchased/${widget.userId}"),
       );
-      print("Status code: ${response.statusCode}");
-      print("Response body: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-
         List<dynamic> purchases = data["purchases"] ?? [];
 
-        // เรียงวันที่ล่าสุดไปเก่าสุด
         purchases.sort((a, b) {
           DateTime dateA = DateTime.parse(a["purchase_date"]);
           DateTime dateB = DateTime.parse(b["purchase_date"]);
-          return dateB.compareTo(dateA); // dateB ก่อน → ใหม่สุดก่อน
+          return dateB.compareTo(dateA);
         });
 
         setState(() {
@@ -52,7 +48,6 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
         setState(() => loading = false);
       }
     } catch (e) {
-      print("Error: $e");
       setState(() => loading = false);
     }
   }
@@ -165,6 +160,32 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => UsersPrizesPage(
+                                      userId: widget.userId, // ส่ง userId
+                                      initialNumber: lotto["lotto_number"]
+                                          .toString(), // ✅ ส่งเลขหวย
+                                    ),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange,
+                              ),
+                              icon: const Icon(
+                                Icons.check_circle,
+                                color: Colors.white,
+                              ),
+                              label: const Text(
+                                "ตรวจสอบรางวัล",
+                                style: TextStyle(color: Colors.white),
                               ),
                             ),
                           ],

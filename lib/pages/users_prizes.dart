@@ -2,9 +2,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'login_page.dart';
+import 'users_catch_the_lottery.dart';
 
 class UsersPrizesPage extends StatefulWidget {
-  const UsersPrizesPage({super.key});
+  final String userId;
+  final String? initialNumber; // ✅ เพิ่มพารามิเตอร์ initialNumber
+
+  const UsersPrizesPage({super.key, required this.userId, this.initialNumber});
 
   @override
   State<UsersPrizesPage> createState() => _UsersPrizesPageState();
@@ -25,6 +29,10 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
   @override
   void initState() {
     super.initState();
+    // ✅ ตั้งเลขเริ่มต้นถ้ามี
+    if (widget.initialNumber != null) {
+      _controller.text = widget.initialNumber!;
+    }
     _fetchResults();
   }
 
@@ -77,20 +85,6 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
       return;
     }
 
-    // ตรวจสอบว่ามีเลขนี้อยู่ใน DB หรือไม่
-    bool existsInDB = false;
-    if (prize1 != null && inputNumber == prize1) existsInDB = true;
-    if (prize2 != null && inputNumber == prize2) existsInDB = true;
-    if (prize3 != null && inputNumber == prize3) existsInDB = true;
-    if (last3 != null && inputNumber.endsWith(last3!)) existsInDB = true;
-    if (last2 != null && inputNumber.endsWith(last2!)) existsInDB = true;
-
-    if (!existsInDB) {
-      _showResultDialog(false, message: "❌ ไม่มีหวยชุดนี้ในระบบ");
-      return;
-    }
-
-    // ถ้ามีใน DB ให้ตรวจว่าถูกรางวัลหรือไม่
     bool success = false;
     if (inputNumber == prize1 ||
         inputNumber == prize2 ||
@@ -100,7 +94,12 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
       success = true;
     }
 
-    _showResultDialog(success);
+    if (success) {
+      _showResultDialog(true);
+    } else {
+      _showResultDialog(false, message: "❌ ไม่ถูกรางวัล!!");
+      _controller.clear(); // ล้างช่องกรอกเลข
+    }
   }
 
   void _showResultDialog(bool success, {String? message}) {
@@ -149,6 +148,16 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
 
     Future.delayed(const Duration(seconds: 2), () {
       Navigator.of(context).pop();
+
+      if (success) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                UsersCatchTheLottery(userId: widget.userId), // ✅ ส่งแค่ userId
+          ),
+        );
+      }
     });
   }
 
@@ -223,12 +232,9 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
                         hintText: "ป้อนเลข 6 หลัก",
                         counterText: "",
                       ),
-                      // กด enter จะเรียก _checkPrize
                       onSubmitted: (value) => _checkPrize(),
-                      // สำหรับกดตัวเลขปกติ เราไม่ต้องเพิ่มอะไรเพราะ keyboardType:number
                     ),
                   ),
-
                   const SizedBox(height: 20),
                   ElevatedButton(
                     onPressed: _checkPrize,

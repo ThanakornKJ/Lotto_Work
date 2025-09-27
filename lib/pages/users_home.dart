@@ -164,7 +164,8 @@ class _HomePageState extends State<HomePage> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => const UsersPrizesPage(),
+                          builder: (_) =>
+                              UsersPrizesPage(userId: widget.userId),
                         ),
                       );
                     },
