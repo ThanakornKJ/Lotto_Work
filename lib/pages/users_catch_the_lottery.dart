@@ -6,7 +6,7 @@ import 'users_wallets.dart';
 
 class UsersCatchTheLottery extends StatefulWidget {
   final String userId;
-  final String checkedNumber; // ✅ เพิ่มเลขที่ผู้ใช้กรอก
+  final String checkedNumber; // เลขที่ผู้ใช้กรอก
 
   const UsersCatchTheLottery({
     super.key,
@@ -28,13 +28,14 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
     fetchWinningTickets();
   }
 
-  // ดึงรางวัลของผู้ใช้
+  // ดึงรางวัลของผู้ใช้และ filter เฉพาะรางวัลที่ตรงเลข
   Future<void> fetchWinningTickets() async {
     setState(() => loading = true);
     try {
       final response = await http.get(
         Uri.parse('http://lotto-work.onrender.com/api/admin/user-prizes'),
       );
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as List;
 
@@ -68,10 +69,10 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
               }
             }
           }
-          setState(() {
-            winningTickets = prizes;
-          });
+          setState(() => winningTickets = prizes);
         }
+      } else {
+        print('Error fetching prizes: ${response.body}');
       }
     } catch (e) {
       print(e);
@@ -83,11 +84,15 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
   // ขึ้นเงินรางวัล
   Future<void> claimPrize(String prizeType) async {
     try {
-      final response = await http.post(
-        Uri.parse('http://lotto-work.onrender.com/claim-prize'),
+      print('Claiming prize $prizeType for user ${widget.userId}');
+      final client = http.Client();
+      final response = await client.post(
+        Uri.parse('https://lotto-work.onrender.com/claim-prize'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'user_id': widget.userId, 'prize_type': prizeType}),
       );
+
+      print('Response: ${response.statusCode} - ${response.body}');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -97,7 +102,7 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
           context: context,
           builder: (_) => AlertDialog(
             title: const Text('ขึ้นเงินรางวัลเรียบร้อย'),
-            content: Text('จำนวนเงิน: ${newBalance} บาท'),
+            content: Text('จำนวนเงิน: $newBalance บาท'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -107,18 +112,48 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
           ),
         );
 
-        // ไปหน้า Wallet
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => UsersWalletsPage(userId: widget.userId),
+        // ลบรางวัลที่เพิ่งขึ้นเงินออกจากหน้าจอ
+        setState(() {
+          winningTickets.removeWhere((t) => t['prize_type'] == prizeType);
+        });
+
+        // ถ้าอยากกลับหน้า Wallet ก็ยังสามารถทำได้
+        // Navigator.pushReplacement(
+        //   context,
+        //   MaterialPageRoute(
+        //     builder: (_) => UsersWalletsPage(userId: widget.userId),
+        //   ),
+        // );
+      } else {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('ไม่สามารถขึ้นเงินได้'),
+            content: Text('Error: ${response.body}'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('ตกลง'),
+              ),
+            ],
           ),
         );
-      } else {
-        print('Error claiming prize: ${response.body}');
       }
     } catch (e) {
-      print(e);
+      print('Exception: $e');
+      showDialog(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('เกิดข้อผิดพลาด'),
+          content: Text('$e'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('ตกลง'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -143,7 +178,7 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : winningTickets.isEmpty
-          ? const Center(child: Text('ไม่มีรางวัลที่ถูก'))
+          ? const Center(child: Text('ไม่มีรางวัลที่ตรงกับเลขที่ตรวจสอบ'))
           : ListView.builder(
               itemCount: winningTickets.length,
               itemBuilder: (context, index) {

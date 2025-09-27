@@ -311,12 +311,21 @@ app.post('/results', async (req, res) => {
       return res.status(400).json({ error: 'No lotteries available in selected pool' });
     }
 
-    // last3 จาก prize1
-    const last3 = prize1.slice(-3);
+    // last3 ควรไม่ซ้ำกับเลขท้ายรางวัลใหญ่
+    const takenLast3 = [prize1.slice(-3), prize2.slice(-3), prize3.slice(-3)];
+    let last3;
+    do {
+      const randomLottery = poolLotteries[Math.floor(Math.random() * poolLotteries.length)];
+      last3 = randomLottery.number.slice(-3);
+    } while (takenLast3.includes(last3));
 
-    // last2 สุ่มจาก pool
-    const randomLottery = poolLotteries[Math.floor(Math.random() * poolLotteries.length)];
-    const last2 = randomLottery.number.slice(-2);
+    // last2 ควรไม่ซ้ำกับเลขท้ายรางวัลใหญ่
+    const takenLast2 = [prize1.slice(-2), prize2.slice(-2), prize3.slice(-2)];
+    let last2;
+    do {
+      const randomLottery = poolLotteries[Math.floor(Math.random() * poolLotteries.length)];
+      last2 = randomLottery.number.slice(-2);
+    } while (takenLast2.includes(last2));
 
     const prizeAmounts = {
       prize1: 6000000,
@@ -343,8 +352,10 @@ app.post('/results', async (req, res) => {
         if (lot.number === prize1) await Prize.create({ prize_id: 'P' + Date.now() + '1' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[0]._id, prize_amount: prizeAmounts.prize1 });
         if (lot.number === prize2) await Prize.create({ prize_id: 'P' + Date.now() + '2' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[1]._id, prize_amount: prizeAmounts.prize2 });
         if (lot.number === prize3) await Prize.create({ prize_id: 'P' + Date.now() + '3' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[2]._id, prize_amount: prizeAmounts.prize3 });
-        if (lot.number.slice(-3) === last3) await Prize.create({ prize_id: 'P' + Date.now() + '4' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[3]._id, prize_amount: prizeAmounts.last3 });
-        if (lot.number.slice(-2) === last2) await Prize.create({ prize_id: 'P' + Date.now() + '5' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[4]._id, prize_amount: prizeAmounts.last2 });
+        if (lot.number.slice(-3) === last3 && lot.number !== prize1 && lot.number !== prize2 && lot.number !== prize3)
+          await Prize.create({ prize_id: 'P' + Date.now() + '4' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[3]._id, prize_amount: prizeAmounts.last3 });
+        if (lot.number.slice(-2) === last2 && lot.number !== prize1 && lot.number !== prize2 && lot.number !== prize3)
+          await Prize.create({ prize_id: 'P' + Date.now() + '5' + p.purchase_id, purchase_id: p.purchase_id, result_id: results[4]._id, prize_amount: prizeAmounts.last2 });
       }
     }
 
@@ -357,6 +368,7 @@ app.post('/results', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 app.get('/lotteries/sold', async (req, res) => {
