@@ -17,6 +17,8 @@ class UserHistoryPage extends StatefulWidget {
 class _UserHistoryPageState extends State<UserHistoryPage> {
   bool loading = true;
   List<dynamic> purchasedLotto = [];
+  Map<String, Map<String, bool>> claimedMap =
+      {}; // เก็บสถานะ claimed ของแต่ละเลขหวย
 
   @override
   void initState() {
@@ -42,14 +44,66 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
 
         setState(() {
           purchasedLotto = purchases;
-          loading = false;
         });
-      } else {
-        setState(() => loading = false);
+
+        // หลังจากดึงเลขหวยแล้ว ให้ดึงสถานะ claimed
+        for (var lotto in purchases) {
+          final number = lotto["lotto_number"].toString();
+          final status = await fetchClaimedStatus(number);
+          setState(() {
+            claimedMap[number] = status;
+          });
+        }
       }
     } catch (e) {
+      print(e);
+    } finally {
       setState(() => loading = false);
     }
+  }
+
+  // ดึงรางวัลของผู้ใช้และ filter เฉพาะรางวัลที่ตรงเลข
+  Future<Map<String, bool>> fetchClaimedStatus(String lottoNumber) async {
+    try {
+      final response = await http.get(
+        Uri.parse('https://lotto-work.onrender.com/api/admin/user-prizes'),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as List;
+        final userData = data.firstWhere(
+          (u) => u['user_id'] == widget.userId,
+          orElse: () => null,
+        );
+
+        if (userData != null) {
+          Map<String, bool> claimed = {};
+          for (var p in userData['prizes']) {
+            final winningNumber = p['winning_number'] ?? '';
+            final isClaimed = p['claimed'] ?? false;
+
+            bool match = false;
+            switch (p['prize_type']) {
+              case '1st':
+              case '2nd':
+              case '3rd':
+                if (lottoNumber == winningNumber) match = true;
+                break;
+              case 'last3':
+              case 'last2':
+                if (lottoNumber.endsWith(winningNumber)) match = true;
+                break;
+            }
+
+            if (match) claimed[p['prize_type']] = isClaimed;
+          }
+          return claimed;
+        }
+      }
+    } catch (e) {
+      print(e);
+    }
+    return {};
   }
 
   @override
@@ -134,6 +188,9 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                       );
                       String formattedDate =
                           "${createdAt.day}/${createdAt.month}/${createdAt.year} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}";
+
+                      final status = claimedMap[lotto["lotto_number"]] ?? {};
+
                       return Container(
                         margin: const EdgeInsets.symmetric(
                           horizontal: 40,
@@ -163,31 +220,47 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            ElevatedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => UsersPrizesPage(
-                                      userId: widget.userId, // ส่ง userId
-                                      initialNumber: lotto["lotto_number"]
-                                          .toString(), // ✅ ส่งเลขหวย
+                            status.isEmpty
+                                ? ElevatedButton.icon(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => UsersPrizesPage(
+                                            userId: widget.userId,
+                                            initialNumber: lotto["lotto_number"]
+                                                .toString(),
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange,
                                     ),
+                                    icon: const Icon(
+                                      Icons.check_circle,
+                                      color: Colors.white,
+                                    ),
+                                    label: const Text(
+                                      "ตรวจสอบรางวัล",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
+                                  )
+                                : Column(
+                                    children: status.entries.map((e) {
+                                      return Text(
+                                        e.value
+                                            ? '${e.key} : ขึ้นเงินสำเร็จแล้ว'
+                                            : '${e.key} : ตรวจสอบรางวัล',
+                                        style: TextStyle(
+                                          color: e.value
+                                              ? Colors.green
+                                              : Colors.orange,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      );
+                                    }).toList(),
                                   ),
-                                );
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.orange,
-                              ),
-                              icon: const Icon(
-                                Icons.check_circle,
-                                color: Colors.white,
-                              ),
-                              label: const Text(
-                                "ตรวจสอบรางวัล",
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
                           ],
                         ),
                       );

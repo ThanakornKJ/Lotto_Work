@@ -58,7 +58,8 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
               prize3 = r['winning_number'];
               break;
             case 'last3':
-              last3 = r['winning_number'];
+              // เอาเฉพาะเลขท้าย 3 ตัว
+              last3 = r['winning_number'].substring(3);
               break;
             case 'last2':
               last2 = r['winning_number'];

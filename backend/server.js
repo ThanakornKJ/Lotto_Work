@@ -50,8 +50,10 @@ const prizeSchema = new mongoose.Schema({
   prize_id: String,
   purchase_id: String,
   result_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Result' },
-  prize_amount: Number
+  prize_amount: Number,
+  claimed: { type: Boolean, default: false }, // ✅ เพิ่ม field claimed
 });
+
 
 
 // Models
@@ -445,8 +447,11 @@ app.get('/api/admin/user-prizes', async (req, res) => {
       const prizes = [];
 
       for (const p of purchases) {
-        const userPrizes = await Prize.find({ purchase_id: p.purchase_id })
-          .populate({ path: 'result_id', select: 'prize_type winning_number' }); // ✅ เพิ่ม winning_number
+        const userPrizes = await Prize.find({ 
+          purchase_id: p.purchase_id,
+          claimed: false, // ✅ แสดงเฉพาะรางวัลที่ยังไม่ขึ้นเงิน
+        }).populate({ path: 'result_id', select: 'prize_type winning_number' });
+
 
         for (const up of userPrizes) {
           if (up.result_id) { // ป้องกัน null
@@ -473,18 +478,21 @@ app.get('/api/admin/user-prizes', async (req, res) => {
 });
 
 // ขึ้นเงินรางวัลแล้ว (mark prize as claimed)
+// ขึ้นเงินรางวัลแล้ว (mark prize as claimed)
 app.post('/claim-prize', async (req, res) => {
   try {
     const { user_id, prize_type } = req.body;
 
     // หาผู้ใช้
     const purchases = await Purchase.find({ user_id });
+
+    // หารางวัลที่ยังไม่ claimed
     let prizeToClaim = null;
 
     for (const p of purchases) {
       const prize = await Prize.findOne({
         purchase_id: p.purchase_id,
-        prize_amount: { $gt: 0 },
+        claimed: false, // ✅ เฉพาะที่ยังไม่ขึ้นเงิน
       }).populate({ path: 'result_id', select: 'prize_type' });
 
       if (prize && prize.result_id.prize_type === prize_type) {
@@ -493,10 +501,11 @@ app.post('/claim-prize', async (req, res) => {
       }
     }
 
-    if (!prizeToClaim) return res.status(404).json({ error: 'Prize not found' });
+    if (!prizeToClaim) return res.status(404).json({ error: 'Prize not found or already claimed' });
 
-    // ลบหรือ mark ว่า claimed
-    await Prize.deleteOne({ _id: prizeToClaim._id });
+    // mark ว่า claimed
+    prizeToClaim.claimed = true;
+    await prizeToClaim.save();
 
     // เพิ่มเงินเข้ากระเป๋า
     const wallet = await Wallet.findOne({ user_id });
@@ -508,6 +517,7 @@ app.post('/claim-prize', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 
