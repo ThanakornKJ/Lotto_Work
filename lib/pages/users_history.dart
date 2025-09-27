@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'login_page.dart';
 import 'users_home.dart';
-import 'users_prizes.dart'; // ต้องเปิดหน้า UsersPrizesPage
+import 'users_prizes.dart';
 
 class UserHistoryPage extends StatefulWidget {
   final String userId;
@@ -17,8 +17,10 @@ class UserHistoryPage extends StatefulWidget {
 class _UserHistoryPageState extends State<UserHistoryPage> {
   bool loading = true;
   List<dynamic> purchasedLotto = [];
-  Map<String, String> lottoResultMap =
+  Map<String, String?> lottoResultMap =
       {}; // key: lottoNumber, value: ข้อความผลลัพธ์
+  Map<String, String> purchaseIdMap =
+      {}; // key: lottoNumber, value: purchase_id
 
   @override
   void initState() {
@@ -49,13 +51,18 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
           return dateB.compareTo(dateA);
         });
         purchasedLotto = purchases;
+
+        purchaseIdMap.clear();
+        for (var item in purchases) {
+          purchaseIdMap[item["lotto_number"].toString()] = item["purchase_id"];
+        }
       }
     } catch (e) {
       print("Error fetchPurchasedLotto: $e");
     }
   }
 
-  // โหลดผลรางวัลที่มีอยู่แล้ว
+  // โหลดผลรางวัลที่มีอยู่แล้ว (รวมเลขที่ตรวจแล้วไม่ถูกรางวัล)
   Future<void> fetchLottoResults() async {
     try {
       final response = await http.get(
@@ -71,13 +78,31 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
           final lottoNumber = item["lotto_number"];
           if (item["prize_type"] != null) {
             lottoResultMap[lottoNumber] = "ถูกรางวัล ${item["prize_type"]}";
-          } else {
+          } else if (item["claimed_no_prize"] == true) {
             lottoResultMap[lottoNumber] = "ไม่ถูกรางวัล";
+          } else {
+            lottoResultMap[lottoNumber] = null; // ยังไม่ตรวจ
           }
         }
       }
     } catch (e) {
       print("Error fetchLottoResults: $e");
+    }
+  }
+
+  // บันทึกว่าเช็คแล้วแต่ไม่ถูกรางวัล
+  Future<void> markNoPrize(String purchaseId) async {
+    try {
+      await http.post(
+        Uri.parse('https://lotto-work.onrender.com/claim-no-prize'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'user_id': widget.userId,
+          'purchase_id': purchaseId,
+        }),
+      );
+    } catch (e) {
+      print("Error markNoPrize: $e");
     }
   }
 
@@ -166,6 +191,7 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
 
                       final lottoNumber = lotto["lotto_number"].toString();
                       final resultText = lottoResultMap[lottoNumber];
+                      final purchaseId = purchaseIdMap[lottoNumber];
 
                       return Container(
                         margin: const EdgeInsets.symmetric(
@@ -196,7 +222,7 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            (resultText == null || resultText == "ไม่ถูกรางวัล")
+                            (resultText == null)
                                 ? ElevatedButton.icon(
                                     onPressed: () async {
                                       // เปิดหน้า UsersPrizesPage
@@ -214,8 +240,9 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                                         setState(() {
                                           lottoResultMap[lottoNumber] = result;
                                         });
-                                      } else {
-                                        // รีโหลดผลจาก server เพื่ออัปเดต claimed
+                                      } else if (purchaseId != null) {
+                                        // ถ้าไม่ถูกรางวัล → บันทึกลง server
+                                        await markNoPrize(purchaseId);
                                         await fetchLottoResults();
                                         setState(() {});
                                       }

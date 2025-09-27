@@ -6,7 +6,7 @@ import 'users_catch_the_lottery.dart';
 
 class UsersPrizesPage extends StatefulWidget {
   final String userId;
-  final String? initialNumber; // ✅ เพิ่มพารามิเตอร์ initialNumber
+  final String? initialNumber;
 
   const UsersPrizesPage({super.key, required this.userId, this.initialNumber});
 
@@ -17,7 +17,6 @@ class UsersPrizesPage extends StatefulWidget {
 class _UsersPrizesPageState extends State<UsersPrizesPage> {
   final TextEditingController _controller = TextEditingController();
 
-  // เก็บรางวัลจาก DB
   String? prize1;
   String? prize2;
   String? prize3;
@@ -29,7 +28,6 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
   @override
   void initState() {
     super.initState();
-    // ✅ ตั้งเลขเริ่มต้นถ้ามี
     if (widget.initialNumber != null) {
       _controller.text = widget.initialNumber!;
     }
@@ -58,7 +56,6 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
               prize3 = r['winning_number'];
               break;
             case 'last3':
-              // เอาเฉพาะเลขท้าย 3 ตัว
               last3 = r['winning_number'].substring(3);
               break;
             case 'last2':
@@ -99,7 +96,7 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
       _showResultDialog(true);
     } else {
       _showResultDialog(false, message: "❌ ไม่ถูกรางวัล!!");
-      _controller.clear(); // ล้างช่องกรอกเลข
+      _controller.clear();
     }
   }
 
@@ -150,16 +147,17 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
       },
     );
 
+    // ปิด Dialog และส่งข้อความกลับไป UserHistoryPage
     Future.delayed(const Duration(seconds: 2), () {
       Navigator.of(context).pop();
-      Navigator.of(context).pop(resultMessage); // ส่งข้อความกลับ
+      Navigator.of(context).pop(resultMessage); // ส่งกลับ
       if (success) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (context) => UsersCatchTheLottery(
               userId: widget.userId,
-              checkedNumber: _controller.text.trim(), // ส่งเลขที่ตรวจสอบ
+              checkedNumber: _controller.text.trim(),
             ),
           ),
         );
