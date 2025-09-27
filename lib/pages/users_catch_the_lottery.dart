@@ -81,30 +81,23 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
   }
 
   // ขึ้นเงินรางวัล
-  Future<void> claimPrize(int amount) async {
+  Future<void> claimPrize(String prizeType) async {
     try {
-      // ดึง wallet ปัจจุบัน
-      final walletRes = await http.get(
-        Uri.parse('http://lotto-work.onrender.com/wallet/${widget.userId}'),
-      );
-      if (walletRes.statusCode != 200) return;
-      final wallet = json.decode(walletRes.body);
-      final currentBalance = wallet['balance'] as int;
-
-      // อัปเดต wallet
-      final updateRes = await http.put(
-        Uri.parse('http://lotto-work.onrender.com/wallet/${widget.userId}'),
+      final response = await http.post(
+        Uri.parse('http://lotto-work.onrender.com/claim-prize'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'balance': currentBalance + amount}),
+        body: jsonEncode({'user_id': widget.userId, 'prize_type': prizeType}),
       );
 
-      if (updateRes.statusCode == 200) {
-        // แสดง Popup
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final newBalance = data['balance'];
+
         await showDialog(
           context: context,
           builder: (_) => AlertDialog(
             title: const Text('ขึ้นเงินรางวัลเรียบร้อย'),
-            content: Text('จำนวนเงิน: $amount บาท'),
+            content: Text('จำนวนเงิน: ${newBalance} บาท'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
@@ -121,6 +114,8 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
             builder: (_) => UsersWalletsPage(userId: widget.userId),
           ),
         );
+      } else {
+        print('Error claiming prize: ${response.body}');
       }
     } catch (e) {
       print(e);
@@ -166,7 +161,7 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
                     subtitle: Text('จำนวนเงิน: ${ticket['prize_amount']} บาท'),
                     trailing: ElevatedButton(
                       onPressed: () =>
-                          claimPrize(ticket['prize_amount'] as int),
+                          claimPrize(ticket['prize_type'] as String),
                       child: const Text('ขึ้นเงิน'),
                     ),
                   ),

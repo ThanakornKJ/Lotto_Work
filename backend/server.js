@@ -454,6 +454,42 @@ app.get('/api/admin/user-prizes', async (req, res) => {
   }
 });
 
+// ขึ้นเงินรางวัลแล้ว (mark prize as claimed)
+app.post('/claim-prize', async (req, res) => {
+  try {
+    const { user_id, prize_type } = req.body;
+
+    // หาผู้ใช้
+    const purchases = await Purchase.find({ user_id });
+    let prizeToClaim = null;
+
+    for (const p of purchases) {
+      const prize = await Prize.findOne({
+        purchase_id: p.purchase_id,
+        prize_amount: { $gt: 0 },
+      }).populate({ path: 'result_id', select: 'prize_type' });
+
+      if (prize && prize.result_id.prize_type === prize_type) {
+        prizeToClaim = prize;
+        break;
+      }
+    }
+
+    if (!prizeToClaim) return res.status(404).json({ error: 'Prize not found' });
+
+    // ลบหรือ mark ว่า claimed
+    await Prize.deleteOne({ _id: prizeToClaim._id });
+
+    // เพิ่มเงินเข้ากระเป๋า
+    const wallet = await Wallet.findOne({ user_id });
+    wallet.balance += prizeToClaim.prize_amount;
+    await wallet.save();
+
+    res.json({ message: 'Claimed successfully', balance: wallet.balance });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 
