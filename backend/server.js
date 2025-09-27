@@ -391,6 +391,32 @@ app.get('/lotteries/sold', async (req, res) => {
   }
 });
 
+// ตรวจสอบรางวัลของผู้ใช้แต่ละเลข
+app.get('/user/:user_id/prizes', async (req, res) => {
+  try {
+    const { user_id } = req.params;
+    const purchases = await Purchase.find({ user_id });
+
+    const result = [];
+    for (const p of purchases) {
+      const prize = await Prize.findOne({ purchase_id: p.purchase_id }).populate({
+        path: 'result_id',
+        select: 'prize_type winning_number'
+      });
+
+      result.push({
+        lotto_number: p.lotto_id, // หรือ join กับ Lottery เพื่อดึงเลขจริง
+        claimed: prize ? prize.claimed : false,
+        prize_type: prize?.result_id?.prize_type,
+        winning_number: prize?.result_id?.winning_number
+      });
+    }
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 
 

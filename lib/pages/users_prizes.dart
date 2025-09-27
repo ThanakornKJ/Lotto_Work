@@ -104,6 +104,9 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
   }
 
   void _showResultDialog(bool success, {String? message}) {
+    final resultMessage =
+        message ?? (success ? "✅ ถูกรางวัล!!" : "❌ ไม่ถูกรางวัล!!");
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -132,7 +135,7 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  message ?? (success ? "คุณถูกรางวัล!!" : "ไม่ถูกรางวัล!!"),
+                  resultMessage,
                   style: TextStyle(
                     fontSize: 18,
                     color: success ? Colors.green : Colors.red,
@@ -149,7 +152,7 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
 
     Future.delayed(const Duration(seconds: 2), () {
       Navigator.of(context).pop();
-
+      Navigator.of(context).pop(resultMessage); // ส่งข้อความกลับ
       if (success) {
         Navigator.pushReplacement(
           context,

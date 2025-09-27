@@ -17,8 +17,10 @@ class UserHistoryPage extends StatefulWidget {
 class _UserHistoryPageState extends State<UserHistoryPage> {
   bool loading = true;
   List<dynamic> purchasedLotto = [];
-  Map<String, Map<String, bool>> claimedMap =
-      {}; // เก็บสถานะ claimed ของแต่ละเลขหวย
+
+  // แก้ไขเป็น String? เพื่อรองรับค่า null
+  Map<String, String?> lottoResultMap =
+      {}; // key: lottoNumber, value: ข้อความผลลัพธ์
 
   @override
   void initState() {
@@ -26,33 +28,47 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
     fetchPurchasedLotto();
   }
 
+  // fetchPurchasedLotto
   Future<void> fetchPurchasedLotto() async {
+    setState(() => loading = true);
     try {
       final response = await http.get(
-        Uri.parse("https://lotto-work.onrender.com/purchased/${widget.userId}"),
+        Uri.parse("https://lotto-work.onrender.com/api/admin/user-prizes"),
       );
 
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        List<dynamic> purchases = data["purchases"] ?? [];
+        final data = json.decode(response.body) as List;
 
-        purchases.sort((a, b) {
-          DateTime dateA = DateTime.parse(a["purchase_date"]);
-          DateTime dateB = DateTime.parse(b["purchase_date"]);
-          return dateB.compareTo(dateA);
-        });
+        // หาเฉพาะ user ของ current user
+        final currentUserData = data.firstWhere(
+          (u) => u['user_id'] == widget.userId,
+          orElse: () => null,
+        );
 
-        setState(() {
-          purchasedLotto = purchases;
-        });
+        if (currentUserData != null) {
+          List<dynamic> prizes = currentUserData['prizes'] ?? [];
 
-        // หลังจากดึงเลขหวยแล้ว ให้ดึงสถานะ claimed
-        for (var lotto in purchases) {
-          final number = lotto["lotto_number"].toString();
-          final status = await fetchClaimedStatus(number);
+          // สร้าง purchasedLotto list จาก prizes
           setState(() {
-            claimedMap[number] = status;
+            purchasedLotto = prizes.map((p) {
+              return {
+                "lotto_number":
+                    p['winning_number'] ?? "", // หรือเลขที่ซื้อถ้ามี
+                "claimed": p['claimed'] ?? false,
+                "purchase_date":
+                    p['purchase_date'] ?? DateTime.now().toIso8601String(),
+              };
+            }).toList();
+
+            lottoResultMap = {
+              for (var item in purchasedLotto)
+                item['lotto_number']: item['claimed']
+                    ? "✅ ถูกรางวัลแล้ว"
+                    : null,
+            };
           });
+        } else {
+          setState(() => purchasedLotto = []);
         }
       }
     } catch (e) {
@@ -60,50 +76,6 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
     } finally {
       setState(() => loading = false);
     }
-  }
-
-  // ดึงรางวัลของผู้ใช้และ filter เฉพาะรางวัลที่ตรงเลข
-  Future<Map<String, bool>> fetchClaimedStatus(String lottoNumber) async {
-    try {
-      final response = await http.get(
-        Uri.parse('https://lotto-work.onrender.com/api/admin/user-prizes'),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as List;
-        final userData = data.firstWhere(
-          (u) => u['user_id'] == widget.userId,
-          orElse: () => null,
-        );
-
-        if (userData != null) {
-          Map<String, bool> claimed = {};
-          for (var p in userData['prizes']) {
-            final winningNumber = p['winning_number'] ?? '';
-            final isClaimed = p['claimed'] ?? false;
-
-            bool match = false;
-            switch (p['prize_type']) {
-              case '1st':
-              case '2nd':
-              case '3rd':
-                if (lottoNumber == winningNumber) match = true;
-                break;
-              case 'last3':
-              case 'last2':
-                if (lottoNumber.endsWith(winningNumber)) match = true;
-                break;
-            }
-
-            if (match) claimed[p['prize_type']] = isClaimed;
-          }
-          return claimed;
-        }
-      }
-    } catch (e) {
-      print(e);
-    }
-    return {};
   }
 
   @override
@@ -189,7 +161,8 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                       String formattedDate =
                           "${createdAt.day}/${createdAt.month}/${createdAt.year} ${createdAt.hour}:${createdAt.minute.toString().padLeft(2, '0')}";
 
-                      final status = claimedMap[lotto["lotto_number"]] ?? {};
+                      final lottoNumber = lotto["lotto_number"].toString();
+                      final resultText = lottoResultMap[lottoNumber];
 
                       return Container(
                         margin: const EdgeInsets.symmetric(
@@ -205,7 +178,7 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                         child: Column(
                           children: [
                             Text(
-                              lotto["lotto_number"].toString(),
+                              lottoNumber,
                               style: const TextStyle(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -220,22 +193,28 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            status.isEmpty
+                            resultText == null
                                 ? ElevatedButton.icon(
-                                    onPressed: () {
-                                      Navigator.push(
+                                    onPressed: () async {
+                                      final result = await Navigator.push(
                                         context,
                                         MaterialPageRoute(
                                           builder: (context) => UsersPrizesPage(
                                             userId: widget.userId,
-                                            initialNumber: lotto["lotto_number"]
-                                                .toString(),
+                                            initialNumber: lottoNumber,
                                           ),
                                         ),
                                       );
+
+                                      if (result != null && result is String) {
+                                        setState(() {
+                                          lottoResultMap[lottoNumber] = result;
+                                        });
+                                      }
                                     },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.orange,
+                                      foregroundColor: Colors.white,
                                     ),
                                     icon: const Icon(
                                       Icons.check_circle,
@@ -246,20 +225,14 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                                       style: TextStyle(color: Colors.white),
                                     ),
                                   )
-                                : Column(
-                                    children: status.entries.map((e) {
-                                      return Text(
-                                        e.value
-                                            ? '${e.key} : ขึ้นเงินสำเร็จแล้ว'
-                                            : '${e.key} : ตรวจสอบรางวัล',
-                                        style: TextStyle(
-                                          color: e.value
-                                              ? Colors.green
-                                              : Colors.orange,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      );
-                                    }).toList(),
+                                : Text(
+                                    resultText,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: resultText.contains("ถูกรางวัล")
+                                          ? Colors.green
+                                          : Colors.red,
+                                    ),
                                   ),
                           ],
                         ),
