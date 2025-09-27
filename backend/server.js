@@ -393,27 +393,22 @@ app.get('/lotteries/sold', async (req, res) => {
 });
 
 // ตรวจสอบรางวัลของผู้ใช้แต่ละเลข
+// API: Get all prizes ของผู้ใช้ (claimed หรือไม่ claimed)
 app.get('/user/:user_id/prizes', async (req, res) => {
   try {
     const { user_id } = req.params;
-    const purchases = await Purchase.find({ user_id }).populate({
-      path: 'lotto_id', // ต้องใช้ ref ใน Purchase -> Lottery
-      model: 'Lottery', // Model ของ Lottery
-      select: 'number'
-    });
+    const purchases = await Purchase.find({ user_id });
 
     const result = [];
     for (const p of purchases) {
-      const prize = await Prize.findOne({ purchase_id: p.purchase_id }).populate({
-        path: 'result_id',
-        select: 'prize_type winning_number'
-      });
+      const prize = await Prize.findOne({ purchase_id: p.purchase_id })
+        .populate({ path: 'result_id', select: 'prize_type winning_number' });
 
       result.push({
-        lotto_number: p.lotto_id?.number, // ✅ เอาเลขล็อตโต้จริง
+        lotto_number: p.lotto_id, // เอาเลขจริงจาก Purchase
         claimed: prize ? prize.claimed : false,
         prize_type: prize?.result_id?.prize_type,
-        winning_number: prize?.result_id?.winning_number
+        winning_number: prize?.result_id?.winning_number,
       });
     }
 
@@ -422,6 +417,7 @@ app.get('/user/:user_id/prizes', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'login_page.dart';
 import 'users_home.dart';
-import 'users_prizes.dart'; // ต้องเปิดหน้า UsersPrizesPage
+import 'users_prizes.dart';
 
 class UserHistoryPage extends StatefulWidget {
   final String userId;
@@ -55,7 +55,7 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
     }
   }
 
-  // โหลดผลรางวัลที่มีอยู่แล้ว
+  // โหลดผลรางวัลจาก API ใหม่
   Future<void> fetchLottoResults() async {
     try {
       final response = await http.get(
@@ -69,7 +69,7 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
         lottoResultMap.clear();
         for (var item in data) {
           final lottoNumber = item["lotto_number"];
-          if (item["prize_type"] != null) {
+          if (item["prize_type"] != null && item["claimed"] == false) {
             lottoResultMap[lottoNumber] = "ถูกรางวัล ${item["prize_type"]}";
           } else {
             lottoResultMap[lottoNumber] = "ไม่ถูกรางวัล";
@@ -196,51 +196,17 @@ class _UserHistoryPageState extends State<UserHistoryPage> {
                               ),
                             ),
                             const SizedBox(height: 10),
-                            (resultText == null || resultText == "ไม่ถูกรางวัล")
-                                ? ElevatedButton.icon(
-                                    onPressed: () async {
-                                      // เปิดหน้า UsersPrizesPage
-                                      final result = await Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => UsersPrizesPage(
-                                            userId: widget.userId,
-                                            initialNumber: lottoNumber,
-                                          ),
-                                        ),
-                                      );
-
-                                      if (result != null && result is String) {
-                                        setState(() {
-                                          lottoResultMap[lottoNumber] = result;
-                                        });
-                                      } else {
-                                        // รีโหลดผลจาก server เพื่ออัปเดต claimed
-                                        await fetchLottoResults();
-                                        setState(() {});
-                                      }
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: Colors.orange,
-                                    ),
-                                    icon: const Icon(
-                                      Icons.check_circle,
-                                      color: Colors.white,
-                                    ),
-                                    label: const Text(
-                                      "ตรวจสอบรางวัล",
-                                      style: TextStyle(color: Colors.white),
-                                    ),
-                                  )
-                                : Text(
-                                    resultText,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: resultText.contains("ถูกรางวัล")
-                                          ? Colors.green
-                                          : Colors.red,
-                                    ),
-                                  ),
+                            Text(
+                              resultText ?? "รอผลรางวัล",
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color:
+                                    (resultText != null &&
+                                        resultText.contains("ถูกรางวัล"))
+                                    ? Colors.green
+                                    : Colors.red,
+                              ),
+                            ),
                           ],
                         ),
                       );
