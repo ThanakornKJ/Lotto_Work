@@ -153,8 +153,10 @@ class _UsersPrizesPageState extends State<UsersPrizesPage> {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) =>
-                UsersCatchTheLottery(userId: widget.userId), // ✅ ส่งแค่ userId
+            builder: (context) => UsersCatchTheLottery(
+              userId: widget.userId,
+              checkedNumber: _controller.text.trim(), // ส่งเลขที่ตรวจสอบ
+            ),
           ),
         );
       }

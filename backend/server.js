@@ -428,19 +428,21 @@ app.get('/api/admin/user-prizes', async (req, res) => {
 
       for (const p of purchases) {
         const userPrizes = await Prize.find({ purchase_id: p.purchase_id })
-          .populate({ path: 'result_id', select: 'prize_type' });
+          .populate({ path: 'result_id', select: 'prize_type winning_number' }); // ✅ เพิ่ม winning_number
+
         for (const up of userPrizes) {
-          if (up.result_id) {
+          if (up.result_id) { // ป้องกัน null
             prizes.push({
               prize_type: up.result_id.prize_type,
               prize_amount: up.prize_amount,
+              winning_number: up.result_id.winning_number, // ✅ ส่ง winning_number ด้วย
             });
           }
         }
       }
 
       result.push({
-        user_id: user.user_id, // เพิ่มตรงนี้
+        user_id: user.user_id, // ✅ เพิ่ม user_id
         username: user.username,
         prizes,
       });
@@ -451,6 +453,7 @@ app.get('/api/admin/user-prizes', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 
 

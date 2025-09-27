@@ -5,8 +5,14 @@ import 'login_page.dart';
 import 'users_wallets.dart';
 
 class UsersCatchTheLottery extends StatefulWidget {
-  final String userId; // user_id
-  const UsersCatchTheLottery({super.key, required this.userId});
+  final String userId;
+  final String checkedNumber; // ✅ เพิ่มเลขที่ผู้ใช้กรอก
+
+  const UsersCatchTheLottery({
+    super.key,
+    required this.userId,
+    required this.checkedNumber,
+  });
 
   @override
   State<UsersCatchTheLottery> createState() => _UsersCatchTheLotteryState();
@@ -32,7 +38,6 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
       if (response.statusCode == 200) {
         final data = json.decode(response.body) as List;
 
-        // แก้ตรงนี้: เทียบกับ user_id แทน username
         final userData = data.firstWhere(
           (u) => u['user_id'] == widget.userId,
           orElse: () => null,
@@ -41,11 +46,26 @@ class _UsersCatchTheLotteryState extends State<UsersCatchTheLottery> {
         if (userData != null) {
           List<Map<String, dynamic>> prizes = [];
           for (var p in userData['prizes']) {
-            if (p['prize_amount'] > 0) {
-              prizes.add({
-                'prize_type': p['prize_type'],
-                'prize_amount': p['prize_amount'],
-              });
+            if (p['prize_amount'] > 0 && p['winning_number'] != null) {
+              bool match = false;
+              switch (p['prize_type']) {
+                case '1st':
+                case '2nd':
+                case '3rd':
+                  if (widget.checkedNumber == p['winning_number']) match = true;
+                  break;
+                case 'last3':
+                case 'last2':
+                  if (widget.checkedNumber.endsWith(p['winning_number']))
+                    match = true;
+                  break;
+              }
+              if (match) {
+                prizes.add({
+                  'prize_type': p['prize_type'],
+                  'prize_amount': p['prize_amount'],
+                });
+              }
             }
           }
           setState(() {
